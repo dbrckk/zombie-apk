@@ -1,0 +1,49 @@
+name: Quick APK inventory
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/quick-apk-inventory.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download prerelease APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p input inventory
+          gh release download zombie-apk.1.0.0 --repo "$GITHUB_REPOSITORY" --pattern 'Zombie.Waves.apk' --dir input
+          test -s input/Zombie.Waves.apk
+          sha256sum input/Zombie.Waves.apk > inventory/SHA256SUMS.txt
+          unzip -l input/Zombie.Waves.apk > inventory/apk-files.txt
+          unzip -Z1 input/Zombie.Waves.apk | grep -E '^classes[0-9]*\.dex$' > inventory/dex-files.txt || true
+          unzip -Z1 input/Zombie.Waves.apk | grep '^assets/' > inventory/assets.txt || true
+          unzip -Z1 input/Zombie.Waves.apk | grep '^lib/' > inventory/native-libs.txt || true
+      - name: Decode manifest and resources
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y >/dev/null
+          sudo apt-get install -y apktool >/dev/null
+          apktool d -f -s input/Zombie.Waves.apk -o decoded >/dev/null
+          cp decoded/AndroidManifest.xml inventory/AndroidManifest.xml
+          find decoded/res -type f | sort > inventory/resources.txt
+          find decoded/assets -type f 2>/dev/null | sort > inventory/decoded-assets.txt || true
+          grep -RhoE '[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*){2,}' decoded/AndroidManifest.xml decoded/res 2>/dev/null | sort -u > inventory/package-like-strings.txt || true
+      - name: Upload quick inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombie-waves-quick-inventory-${{ github.sha }}
+          path: inventory/
+          if-no-files-found: error
+          retention-days: 7
