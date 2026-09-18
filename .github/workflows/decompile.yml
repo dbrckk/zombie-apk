@@ -3,7 +3,9 @@ name: Decompile Zombie Waves prerelease
 on:
   push:
     branches:
-      - analysis/decompile-prerelease
+      - main
+    paths:
+      - '.github/workflows/decompile.yml'
   workflow_dispatch:
 
 permissions:
