@@ -57,7 +57,7 @@ jobs:
 
       - name: Build analysis inventory
         run: |
-          set -euo pipefail
+          set -eu
           {
             echo "APK: Zombie.Waves.apk"
             echo
