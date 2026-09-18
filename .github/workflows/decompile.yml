@@ -48,7 +48,12 @@ jobs:
         run: |
           set -euo pipefail
           apktool d -f input/Zombie.Waves.apk -o output/apktool
-          /tmp/jadx/bin/jadx             --deobf             --show-bad-code             --comments-level warn             -d output/jadx             input/Zombie.Waves.apk
+          set +e
+          /tmp/jadx/bin/jadx --deobf --show-bad-code --comments-level warn -d output/jadx input/Zombie.Waves.apk
+          jadx_status=$?
+          set -e
+          echo "$jadx_status" | tee output/meta/jadx-exit-code.txt
+          test -d output/jadx/sources
 
       - name: Build analysis inventory
         run: |
