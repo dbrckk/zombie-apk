@@ -1,0 +1,82 @@
+name: Decompile Zombie Waves prerelease
+
+on:
+  push:
+    branches:
+      - analysis/decompile-prerelease
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  decompile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download prerelease APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p input output/meta output/apktool output/jadx
+          gh release download zombie-apk.1.0.0             --repo "$GITHUB_REPOSITORY"             --pattern 'Zombie.Waves.apk'             --dir input
+          test -s input/Zombie.Waves.apk
+          sha256sum input/Zombie.Waves.apk | tee output/meta/SHA256SUMS.txt
+          unzip -l input/Zombie.Waves.apk > output/meta/apk-file-list.txt
+
+      - name: Install reverse engineering tools
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y apktool jq
+          JADX_URL="$(gh api repos/skylot/jadx/releases/latest --jq '.assets[] | select(.name | endswith(".zip")) | .browser_download_url' | head -n1)"
+          test -n "$JADX_URL"
+          curl -L --fail "$JADX_URL" -o /tmp/jadx.zip
+          unzip -q /tmp/jadx.zip -d /tmp/jadx
+          test -x /tmp/jadx/bin/jadx
+          /tmp/jadx/bin/jadx --version | tee output/meta/jadx-version.txt
+          apktool --version | tee output/meta/apktool-version.txt
+
+      - name: Decode resources and bytecode
+        run: |
+          set -euo pipefail
+          apktool d -f input/Zombie.Waves.apk -o output/apktool
+          /tmp/jadx/bin/jadx             --deobf             --show-bad-code             --comments-level warn             -d output/jadx             input/Zombie.Waves.apk
+
+      - name: Build analysis inventory
+        run: |
+          set -euo pipefail
+          {
+            echo "APK: Zombie.Waves.apk"
+            echo
+            echo "== Top-level decoded resources =="
+            find output/apktool -maxdepth 2 -type d | sort
+            echo
+            echo "== Decompiled Java package roots =="
+            find output/jadx/sources -maxdepth 4 -type d 2>/dev/null | sort | head -n 500
+            echo
+            echo "== Asset files =="
+            find output/apktool/assets -type f 2>/dev/null | sort | head -n 2000
+            echo
+            echo "== Native libraries =="
+            find output/apktool/lib -type f 2>/dev/null | sort
+          } > output/meta/inventory.txt
+
+          find output/jadx/sources -type f -name '*.java' | sort > output/meta/java-files.txt
+          find output/apktool/res -type f 2>/dev/null | sort > output/meta/resource-files.txt
+          cp output/apktool/AndroidManifest.xml output/meta/AndroidManifest.xml
+          du -sh output/apktool output/jadx | tee output/meta/sizes.txt
+
+      - name: Upload reverse engineering bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombie-waves-decompiled-${{ github.sha }}
+          path: output/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 6
