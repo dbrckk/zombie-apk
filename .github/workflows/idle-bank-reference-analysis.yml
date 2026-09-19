@@ -1,0 +1,215 @@
+name: Analyze Idle Bank reference APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/idle-bank-reference-analysis.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: idle-bank-reference-analysis
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Download Idle Bank APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf input decoded analysis/idle-bank
+          mkdir -p input analysis/idle-bank/raw
+          gh release download idle-bank.1.0.0 \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Idle.Bank.Tycoon.apk' \
+            --dir input
+          test -s input/Idle.Bank.Tycoon.apk
+          sha256sum input/Idle.Bank.Tycoon.apk > analysis/idle-bank/raw/SHA256SUMS.txt
+          stat -c '%s' input/Idle.Bank.Tycoon.apk > analysis/idle-bank/raw/apk-size-bytes.txt
+          unzip -Z1 input/Idle.Bank.Tycoon.apk > analysis/idle-bank/raw/apk-files.txt
+
+      - name: Install inspection tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y >/dev/null
+          sudo apt-get install -y apktool aapt jq file >/dev/null
+          apktool --version > analysis/idle-bank/raw/apktool-version.txt
+          aapt version > analysis/idle-bank/raw/aapt-version.txt 2>&1 || true
+
+      - name: Decode resources
+        run: |
+          set -euo pipefail
+          apktool d -f -s input/Idle.Bank.Tycoon.apk -o decoded >/dev/null
+          cp decoded/AndroidManifest.xml analysis/idle-bank/raw/AndroidManifest.xml
+          aapt dump badging input/Idle.Bank.Tycoon.apk > analysis/idle-bank/raw/aapt-badging.txt || true
+          find decoded/res -type f 2>/dev/null | sort > analysis/idle-bank/raw/resources.txt || true
+          find decoded/assets -type f 2>/dev/null | sort > analysis/idle-bank/raw/decoded-assets.txt || true
+          find decoded/lib -type f 2>/dev/null | sort > analysis/idle-bank/raw/native-libs.txt || true
+
+      - name: Build product-reference report
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, zipfile, collections, os
+
+          apk=Path('input/Idle.Bank.Tycoon.apk')
+          out=Path('analysis/idle-bank/REPORT.md')
+          raw=Path('analysis/idle-bank/raw')
+          names=(raw/'apk-files.txt').read_text(errors='ignore').splitlines()
+          badging=(raw/'aapt-badging.txt').read_text(errors='ignore') if (raw/'aapt-badging.txt').exists() else ''
+          manifest=(raw/'AndroidManifest.xml').read_text(errors='ignore') if (raw/'AndroidManifest.xml').exists() else ''
+
+          pkg=re.search(r"package: name='([^']+)'", badging)
+          ver_name=re.search(r"versionName='([^']+)'", badging)
+          ver_code=re.search(r"versionCode='([^']+)'", badging)
+          sdk=re.search(r"sdkVersion:'([^']+)'", badging)
+          target=re.search(r"targetSdkVersion:'([^']+)'", badging)
+          app_label=re.search(r"application-label:'([^']*)'", badging)
+
+          unity_markers=[
+              n for n in names if n in ('lib/arm64-v8a/libunity.so','lib/armeabi-v7a/libunity.so')
+              or n.startswith('assets/bin/Data/')
+              or 'global-metadata.dat' in n
+          ]
+          il2cpp=any('libil2cpp.so' in n or 'global-metadata.dat' in n for n in names)
+          unreal=any('libUE4.so' in n or 'libUnreal.so' in n for n in names)
+
+          ext=collections.Counter()
+          for n in names:
+              suf=Path(n).suffix.lower() or '<none>'
+              ext[suf]+=1
+
+          with zipfile.ZipFile(apk) as z:
+              infos=sorted(z.infolist(), key=lambda x:x.file_size, reverse=True)
+              top=infos[:80]
+              image_entries=[i for i in infos if Path(i.filename).suffix.lower() in {'.png','.jpg','.jpeg','.webp','.ktx','.ktx2','.dds','.astc'}]
+              audio_entries=[i for i in infos if Path(i.filename).suffix.lower() in {'.ogg','.mp3','.wav','.m4a','.aac'}]
+              dex=[i for i in infos if re.fullmatch(r'classes\d*\.dex', Path(i.filename).name)]
+              libs=[i for i in infos if i.filename.startswith('lib/') and i.filename.endswith('.so')]
+
+          res_files=(raw/'resources.txt').read_text(errors='ignore').splitlines() if (raw/'resources.txt').exists() else []
+          asset_files=(raw/'decoded-assets.txt').read_text(errors='ignore').splitlines() if (raw/'decoded-assets.txt').exists() else []
+
+          # Extract useful manifest/package hints without reproducing proprietary code.
+          permissions=sorted(set(re.findall(r'<uses-permission[^>]+android:name="([^"]+)"', manifest)))
+          activities=sorted(set(re.findall(r'<activity[^>]+android:name="([^"]+)"', manifest)))
+          services=sorted(set(re.findall(r'<service[^>]+android:name="([^"]+)"', manifest)))
+
+          lines=[]
+          lines += ['# Idle Bank Tycoon — APK reference inventory','']
+          lines += ['This report is for product/UX/art reference analysis. It intentionally inventories structure and resources without copying proprietary source code or game assets.','']
+          lines += ['## Package','']
+          lines += [f'- APK size: **{apk.stat().st_size/1024/1024:.1f} MiB**']
+          lines += [f"- Package: `{pkg.group(1) if pkg else 'unknown'}`"]
+          lines += [f"- App label: `{app_label.group(1) if app_label else 'unknown'}`"]
+          lines += [f"- Version: `{ver_name.group(1) if ver_name else '?'}` (code {ver_code.group(1) if ver_code else '?'})"]
+          lines += [f"- Android SDK: min {sdk.group(1) if sdk else '?'} / target {target.group(1) if target else '?'}",'']
+
+          lines += ['## Engine detection','']
+          if unity_markers:
+              lines += ['- Engine family: **Unity detected**']
+              lines += [f"- IL2CPP: **{'yes' if il2cpp else 'not confirmed'}**"]
+              lines += [f'- Unity marker files: {len(unity_markers)}']
+          elif unreal:
+              lines += ['- Engine family: **Unreal detected**']
+          else:
+              lines += ['- Engine family: **not conclusively identified from APK markers**']
+          lines += ['']
+
+          lines += ['## APK composition','']
+          lines += [f'- Total archive entries: **{len(names)}**']
+          lines += [f'- DEX files: **{len(dex)}**']
+          lines += [f'- Native libraries: **{len(libs)}**']
+          lines += [f'- Direct image/texture files in APK: **{len(image_entries)}**']
+          lines += [f'- Direct audio files in APK: **{len(audio_entries)}**']
+          lines += [f'- Decoded Android resources: **{len(res_files)}**']
+          lines += [f'- Decoded asset files: **{len(asset_files)}**','']
+
+          lines += ['### Most common file extensions','']
+          lines += ['| Extension | Count |','|---|---:|']
+          for k,v in ext.most_common(25):
+              lines += [f'| `{k}` | {v} |']
+          lines += ['']
+
+          lines += ['## Largest APK entries','']
+          lines += ['| File | Uncompressed MiB | Compressed MiB |','|---|---:|---:|']
+          for i in top[:50]:
+              lines += [f'| `{i.filename}` | {i.file_size/1024/1024:.2f} | {i.compress_size/1024/1024:.2f} |']
+          lines += ['']
+
+          if image_entries:
+              lines += ['## Largest directly packaged textures/images','']
+              lines += ['| File | MiB |','|---|---:|']
+              for i in image_entries[:60]:
+                  lines += [f'| `{i.filename}` | {i.file_size/1024/1024:.2f} |']
+              lines += ['']
+
+          lines += ['## Android surface','']
+          lines += [f'- Activities declared: **{len(activities)}**']
+          for x in activities[:30]: lines += [f'  - `{x}`']
+          lines += [f'- Services declared: **{len(services)}**']
+          for x in services[:30]: lines += [f'  - `{x}`']
+          lines += [f'- Permissions declared: **{len(permissions)}**']
+          for x in permissions[:40]: lines += [f'  - `{x}`']
+          lines += ['']
+
+          lines += ['## Unity-specific next step','']
+          if unity_markers:
+              lines += [
+                '- Inspect Unity data/bundles and texture inventories with an asset-aware extractor.',
+                '- Focus on scene hierarchy, sprite atlases, material/texture dimensions, animation clips, UI prefab naming and audio-event organization.',
+                '- Use findings as abstract design references for Zero to Empire; do not copy original sprites, meshes, textures, text, branding or code.',
+              ]
+          else:
+              lines += ['- Use decoded Android resources and package inventory as the next analysis source.']
+          lines += ['']
+
+          lines += ['## Zero to Empire comparison targets','']
+          lines += [
+              '- Screen-space split between playable world, HUD and modal surfaces.',
+              '- Upgrade affordance hierarchy and animation feedback.',
+              '- Building tier progression readability at phone scale.',
+              '- Character density and loop variety.',
+              '- Ambient traffic/FX density versus battery/performance budget.',
+              '- Reward-event cadence and visual escalation.',
+              '- Camera framing, scene depth and occlusion handling.',
+              '- Premium material/light contrast without overusing neon.',
+          ]
+          lines += ['']
+
+          out.write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          PY
+
+      - name: Commit analysis report
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/idle-bank/REPORT.md \
+                  analysis/idle-bank/raw/SHA256SUMS.txt \
+                  analysis/idle-bank/raw/aapt-badging.txt \
+                  analysis/idle-bank/raw/AndroidManifest.xml
+          git diff --cached --quiet && exit 0
+          git commit -m 'analysis: inventory Idle Bank reference APK'
+          git pull --rebase origin main
+          git push
+
+      - name: Upload full inventory
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: idle-bank-reference-inventory-${{ github.sha }}
+          path: analysis/idle-bank/
+          if-no-files-found: error
+          retention-days: 14
