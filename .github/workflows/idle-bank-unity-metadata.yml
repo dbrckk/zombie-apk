@@ -1,0 +1,284 @@
+name: Analyze Idle Bank Unity metadata
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/idle-bank-unity-metadata.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: idle-bank-unity-metadata
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Download Idle Bank APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf input extracted analysis/idle-bank-unity
+          mkdir -p input extracted analysis/idle-bank-unity
+          gh release download idle-bank.1.0.0 \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'Idle.Bank.Tycoon.apk' \
+            --dir input
+          test -s input/Idle.Bank.Tycoon.apk
+          unzip -q input/Idle.Bank.Tycoon.apk 'assets/aa/*' 'assets/bin/Data/*' -d extracted
+
+      - name: Install Unity metadata tooling
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check 'UnityPy>=1.23,<2'
+
+      - name: Build Unity metadata report
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from collections import Counter, defaultdict
+          import json, re
+          import UnityPy
+
+          root=Path('extracted')
+          aa=root/'assets/aa'
+          out=Path('analysis/idle-bank-unity/REPORT.md')
+          json_out=Path('analysis/idle-bank-unity/metadata-summary.json')
+
+          bundles=sorted((aa/'Android').glob('*.bundle')) if (aa/'Android').exists() else []
+          catalog_path=aa/'catalog.json'
+          catalog={}
+          if catalog_path.exists():
+              try:
+                  catalog=json.loads(catalog_path.read_text(encoding='utf-8'))
+              except Exception:
+                  catalog={}
+
+          bundle_rows=[]
+          global_types=Counter()
+          global_names=defaultdict(list)
+          texture_dims=Counter()
+          sprite_dims=Counter()
+          animation_names=[]
+          gameobject_names=[]
+          material_names=[]
+          mesh_names=[]
+          audioclip_names=[]
+          scene_like=[]
+
+          def clean_name(v):
+              if not isinstance(v,str): return ''
+              v=' '.join(v.split())
+              return v[:160]
+
+          def maybe_name(data):
+              for attr in ('m_Name','name'):
+                  try:
+                      v=getattr(data,attr)
+                      if isinstance(v,str) and v.strip():
+                          return clean_name(v)
+                  except Exception:
+                      pass
+              return ''
+
+          for bundle in bundles:
+              counts=Counter()
+              names=defaultdict(list)
+              errors=[]
+              try:
+                  env=UnityPy.load(str(bundle))
+                  for obj in env.objects:
+                      t=obj.type.name
+                      counts[t]+=1
+                      global_types[t]+=1
+                      try:
+                          data=obj.read()
+                      except Exception as e:
+                          errors.append(f'{t}:read-failed:{type(e).__name__}')
+                          continue
+                      n=maybe_name(data)
+                      if n:
+                          if len(names[t])<80: names[t].append(n)
+                          if len(global_names[t])<300: global_names[t].append(n)
+
+                      try:
+                          if t=='Texture2D':
+                              w=int(getattr(data,'m_Width',0)); h=int(getattr(data,'m_Height',0))
+                              if w and h: texture_dims[(w,h)]+=1
+                          elif t=='Sprite':
+                              rect=getattr(data,'m_Rect',None)
+                              if rect:
+                                  w=int(getattr(rect,'width',0)); h=int(getattr(rect,'height',0))
+                                  if w and h: sprite_dims[(w,h)]+=1
+                          elif t=='AnimationClip' and n and len(animation_names)<500:
+                              animation_names.append(n)
+                          elif t=='GameObject' and n and len(gameobject_names)<1200:
+                              gameobject_names.append(n)
+                          elif t=='Material' and n and len(material_names)<400:
+                              material_names.append(n)
+                          elif t=='Mesh' and n and len(mesh_names)<400:
+                              mesh_names.append(n)
+                          elif t=='AudioClip' and n and len(audioclip_names)<300:
+                              audioclip_names.append(n)
+                      except Exception:
+                          pass
+              except Exception as e:
+                  errors.append(f'bundle-load-failed:{type(e).__name__}:{str(e)[:120]}')
+
+              bundle_rows.append({
+                  'bundle':bundle.name,
+                  'size_mib':round(bundle.stat().st_size/1024/1024,2),
+                  'types':dict(counts),
+                  'sample_names':{k:v[:30] for k,v in names.items() if v},
+                  'errors':errors[:20],
+              })
+
+          # Catalog metadata: only names/keys/paths, never payload bytes.
+          def walk_json(x, path=''):
+              if isinstance(x,dict):
+                  for k,v in x.items():
+                      yield from walk_json(v, path+'/'+str(k))
+              elif isinstance(x,list):
+                  for i,v in enumerate(x):
+                      yield from walk_json(v, path+f'/{i}')
+              elif isinstance(x,str):
+                  yield path,x
+
+          catalog_strings=[]
+          for p,s in walk_json(catalog):
+              if 2 <= len(s) <= 240:
+                  catalog_strings.append(s)
+
+          interesting_tokens=[]
+          rx=re.compile(r'(bank|character|manager|customer|cash|money|upgrade|level|scene|event|office|vault|teller|queue|atm|employee|worker|animation|prefab|ui|reward)',re.I)
+          seen=set()
+          for s in catalog_strings:
+              if rx.search(s) and s not in seen:
+                  seen.add(s); interesting_tokens.append(s)
+                  if len(interesting_tokens)>=600: break
+
+          for b in bundle_rows:
+              if '_scenes_' in b['bundle']:
+                  scene_like.append(b['bundle'])
+
+          def uniq(seq,limit):
+              out=[]; seen=set()
+              for x in seq:
+                  if not x or x in seen: continue
+                  seen.add(x); out.append(x)
+                  if len(out)>=limit: break
+              return out
+
+          animation_names=uniq(animation_names,300)
+          gameobject_names=uniq(gameobject_names,500)
+          material_names=uniq(material_names,200)
+          mesh_names=uniq(mesh_names,200)
+          audioclip_names=uniq(audioclip_names,150)
+
+          summary={
+              'bundle_count':len(bundles),
+              'scene_like_bundles':scene_like,
+              'global_types':dict(global_types),
+              'texture_dimensions':{f'{w}x{h}':n for (w,h),n in texture_dims.most_common(50)},
+              'sprite_dimensions':{f'{w}x{h}':n for (w,h),n in sprite_dims.most_common(50)},
+              'animation_names':animation_names,
+              'gameobject_names':gameobject_names,
+              'material_names':material_names,
+              'mesh_names':mesh_names,
+              'audio_names':audioclip_names,
+              'catalog_interesting_strings':interesting_tokens,
+              'bundles':bundle_rows,
+          }
+          json_out.write_text(json.dumps(summary,indent=2,ensure_ascii=False),encoding='utf-8')
+
+          lines=['# Idle Bank Tycoon — Unity metadata inventory','']
+          lines += ['This report records Unity metadata only (types, names, dimensions, bundle organization). No proprietary textures, meshes, audio, code or binary assets are exported.','']
+          lines += ['## Content architecture','']
+          lines += [f'- Addressable bundles inspected: **{len(bundles)}**']
+          lines += [f'- Scene-like bundles: **{len(scene_like)}**']
+          for s in scene_like[:30]:
+              lines += [f'  - `{s}`']
+          lines += ['']
+
+          lines += ['## Unity object mix','', '| Type | Count |','|---|---:|']
+          for k,v in global_types.most_common(40):
+              lines += [f'| `{k}` | {v} |']
+          lines += ['']
+
+          lines += ['## Texture dimensions','', '| Dimensions | Count |','|---|---:|']
+          for (w,h),n in texture_dims.most_common(30):
+              lines += [f'| {w}×{h} | {n} |']
+          lines += ['']
+
+          if sprite_dims:
+              lines += ['## Sprite dimensions','', '| Dimensions | Count |','|---|---:|']
+              for (w,h),n in sprite_dims.most_common(30):
+                  lines += [f'| {w}×{h} | {n} |']
+              lines += ['']
+
+          lines += ['## Animation clip names (metadata only)','']
+          for n in animation_names[:180]:
+              lines += [f'- `{n}`']
+          if not animation_names: lines += ['- No readable AnimationClip names surfaced from the inspected bundles.']
+          lines += ['']
+
+          lines += ['## GameObject names useful for product-structure study','']
+          for n in gameobject_names[:260]:
+              if rx.search(n):
+                  lines += [f'- `{n}`']
+          lines += ['']
+
+          lines += ['## Addressables catalog terms relevant to idle-game structure','']
+          for n in interesting_tokens[:260]:
+              lines += [f'- `{n}`']
+          lines += ['']
+
+          lines += ['## Per-bundle object counts','']
+          for b in bundle_rows:
+              lines += [f'### `{b["bundle"]}` — {b["size_mib"]:.2f} MiB','']
+              if b['types']:
+                  lines += [', '.join(f'`{k}`: {v}' for k,v in sorted(b['types'].items(), key=lambda x:(-x[1],x[0]))[:24]),'']
+              if b['errors']:
+                  lines += [f'- Parse notes: {len(b["errors"])} issue(s); see JSON evidence.','']
+
+          lines += ['## Design implications for Zero to Empire','']
+          lines += [
+              '- Treat large locations/eras as independently loadable content groups rather than one monolithic visual package.',
+              '- Keep shared characters and recurrent world props in reusable shared groups.',
+              '- Separate scene/world content from event content so limited-time systems do not bloat the core scene.',
+              '- Use a small set of repeatable animation-state families for workers/managers rather than bespoke logic per entity.',
+              '- Measure texture-resolution distribution before increasing visual density; premium appearance should come from composition/material/light as much as raw resolution.',
+              '- Preserve Zero to Empire original silhouettes, naming, layouts, characters and art; only abstract production patterns are reusable.',
+          ]
+          out.write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          PY
+
+      - name: Commit metadata reports
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/idle-bank-unity/REPORT.md analysis/idle-bank-unity/metadata-summary.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'analysis: inventory Idle Bank Unity metadata'
+          git pull --rebase origin main
+          git push
+
+      - name: Upload metadata evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: idle-bank-unity-metadata-${{ github.sha }}
+          path: analysis/idle-bank-unity/
+          if-no-files-found: error
+          retention-days: 14
