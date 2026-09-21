@@ -82,14 +82,18 @@ jobs:
 
           BASE_APK=""
           while IFS= read -r apk; do
-            if unzip -Z1 "$apk" 2>/dev/null | grep -q '^assets/bin/Data/'; then
+            badging="$(aapt dump badging "$apk" 2>/dev/null | head -n1 || true)"
+            if [ -n "$badging" ] && ! printf '%s' "$badging" | grep -q " split='"; then
               BASE_APK="$apk"
               break
             fi
           done < analysis/zombie-waves-reference/raw/apk-files.txt
 
+          if [ -z "$BASE_APK" ] && [ -s "input/xapk/com.ddup.zombiewaves.zw.apk" ]; then
+            BASE_APK="input/xapk/com.ddup.zombiewaves.zw.apk"
+          fi
           if [ -z "$BASE_APK" ]; then
-            BASE_APK="$(while IFS= read -r apk; do stat -c '%s %n' "$apk"; done < analysis/zombie-waves-reference/raw/apk-files.txt | sort -nr | head -n1 | cut -d' ' -f2-)"
+            BASE_APK="$(while IFS= read -r apk; do stat -c '%s %n' "$apk"; done < analysis/zombie-waves-reference/raw/apk-files.txt | sort -nr | tail -n1 | cut -d' ' -f2-)"
           fi
           test -s "$BASE_APK"
           echo "$BASE_APK" | tee analysis/zombie-waves-reference/raw/base-apk-path.txt
