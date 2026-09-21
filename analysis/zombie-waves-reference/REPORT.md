@@ -5,7 +5,7 @@
 ## Provenance and integrity
 
 - Package: **com.ddup.zombiewaves.zw**
-- Detected version: ****
+- Detected version: **4.7.3**
 - XAPK SHA-256: `364345417bc1b880869acf7943870dd6fb45a97f2b39e95f6225477c0798845f`
 - Signing certificate SHA-1: `8fecea485b6721c19b7b2d54724f8ccf022eda20`
 - APK/split count inside XAPK: **3**
