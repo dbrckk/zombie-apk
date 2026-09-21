@@ -1,1 +1,1 @@
-input/xapk/base_assets.apk
+input/xapk/com.ddup.zombiewaves.zw.apk

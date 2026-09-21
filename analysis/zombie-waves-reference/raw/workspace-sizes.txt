@@ -1,4 +1,4 @@
 1.2G	input/ZombieWaves.xapk
 1.2G	input/xapk
 1.1G	extracted
-1.1G	decoded/base
+64M	decoded/base
