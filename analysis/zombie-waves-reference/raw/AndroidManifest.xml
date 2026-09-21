@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest android:versionCode="169" android:isFeatureSplit="true" android:compileSdkVersion="36" android:compileSdkVersionCodename="16" package="com.ddup.zombiewaves.zw" platformBuildVersionCode="36" platformBuildVersionName="16" split="base_assets"
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:dist="http://schemas.android.com/apk/distribution">
+    <dist:module dist:type="asset-pack">
+        <dist:delivery>
+            <dist:install-time />
+        </dist:delivery>
+        <dist:fusing dist:include="true" />
+    </dist:module>
+    <application android:hasCode="false" />
+</manifest>
