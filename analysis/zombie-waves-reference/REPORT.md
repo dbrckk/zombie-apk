@@ -1,0 +1,1218 @@
+# Zombie Waves — visual/gameplay reverse-engineering metadata report
+
+> Scope: metadata, structure and product-design analysis only. No proprietary textures, meshes, audio, source code or binary payloads are committed.
+
+## Provenance and integrity
+
+- Package: **com.ddup.zombiewaves.zw**
+- Detected version: **4.7.3**
+- XAPK SHA-256: `364345417bc1b880869acf7943870dd6fb45a97f2b39e95f6225477c0798845f`
+- Signing certificate SHA-1: `8fecea485b6721c19b7b2d54724f8ccf022eda20`
+- APK/split count inside XAPK: **3**
+
+## Engine/content architecture
+
+- Unity metadata files considered: **1212**
+- GameObjects observed: **427,436**
+- Canvas objects observed: **1,067**
+- Texture2D objects observed: **19,403**
+- Sprite objects observed: **15,671**
+- Materials observed: **5,700**
+- Particle systems observed: **70,990**
+- Animation clips observed: **1,726**
+- Textures >=1024 on either axis: **1,503**
+- Textures >=2048 on either axis: **237**
+
+## Texture resolution distribution
+
+| Dimensions | Count |
+|---|---:|
+| 150×150 | 2604 |
+| 512×512 | 1535 |
+| 256×256 | 1350 |
+| 128×128 | 1234 |
+| 136×136 | 567 |
+| 1024×1024 | 525 |
+| 64×64 | 448 |
+| 32×32 | 328 |
+| 512×580 | 283 |
+| 500×500 | 244 |
+| 512×1024 | 213 |
+| 1024×2048 | 186 |
+| 197×197 | 165 |
+| 300×300 | 138 |
+| 110×110 | 132 |
+| 140×140 | 125 |
+| 180×180 | 122 |
+| 700×700 | 97 |
+| 409×318 | 92 |
+| 140×97 | 92 |
+| 256×128 | 91 |
+| 88×78 | 91 |
+| 100×100 | 88 |
+| 170×170 | 85 |
+| 124×108 | 80 |
+| 80×80 | 77 |
+| 256×512 | 73 |
+| 212×170 | 67 |
+| 461×512 | 62 |
+| 512×256 | 60 |
+| 490×512 | 55 |
+| 168×204 | 54 |
+| 512×281 | 53 |
+| 65×73 | 52 |
+| 512×221 | 52 |
+
+## Sprite resolution distribution
+
+| Dimensions | Count |
+|---|---:|
+| 150×150 | 2675 |
+| 136×136 | 567 |
+| 128×128 | 511 |
+| 32×32 | 319 |
+| 512×580 | 283 |
+| 500×500 | 244 |
+| 1024×2048 | 181 |
+| 512×1024 | 173 |
+| 197×197 | 165 |
+| 110×110 | 137 |
+| 300×300 | 137 |
+| 256×256 | 127 |
+| 140×140 | 124 |
+| 180×180 | 122 |
+| 88×78 | 106 |
+| 700×700 | 97 |
+| 140×97 | 94 |
+| 100×100 | 93 |
+| 409×318 | 92 |
+| 170×170 | 85 |
+| 80×80 | 83 |
+| 124×108 | 80 |
+| 106×128 | 68 |
+| 228×275 | 68 |
+| 212×170 | 67 |
+| 461×512 | 62 |
+| 256×512 | 60 |
+| 512×512 | 60 |
+| 490×512 | 55 |
+| 168×204 | 54 |
+| 65×73 | 53 |
+| 512×281 | 53 |
+| 512×221 | 53 |
+| 150×180 | 52 |
+| 350×336 | 50 |
+
+## Combat actors / weapons / waves — metadata evidence
+
+- `Enemy2020`
+- `BossCamera`
+- `WeaponSkinDetailCamera`
+- `HeroViewTeamPlay1`
+- `HeroViewTeamPlay0`
+- `DYNormalWeapon`
+- `weapon_AK47_white`
+- `Enemy3024`
+- `DYStaticMonster`
+- `Enemy1102`
+- `DYNormalMonster`
+- `Enemy3023`
+- `hero`
+- `GPUSkinningPlayerMono`
+- `Enemy2024`
+- `Enemy2015`
+- `Enemy1101`
+- `Enemy1001`
+- `Enemy2009`
+- `Enemy1002`
+- `Enemy1203`
+- `Enemy2014`
+- `Enemy1412`
+- `Enemy1202`
+- `Enemy2006`
+- `Enemy1201`
+- `Enemy1206`
+- `Enemy2026`
+- `Enemy1108`
+- `Enemy1414`
+- `Enemy1204`
+- `Enemy2012`
+- `Enemy1109`
+- `Enemy1008`
+- `Enemy2008`
+- `Enemy1423`
+- `Enemy2017`
+- `Enemy2016`
+- `Enemy1205`
+- `Enemy2022`
+- `Enemy2001`
+- `Enemy3010`
+- `Enemy1007`
+- `Enemy2021`
+- `Enemy1004`
+- `Enemy2018`
+- `Enemy1006`
+- `Enemy1103`
+- `Enemy1003`
+- `Enemy1009`
+- `Enemy2023`
+- `Enemy1425`
+- `Enemy1005`
+- `Enemy1427`
+- `Enemy2019`
+- `Enemy1426`
+- `Enemy1010`
+- `Enemy1404`
+- `Enemy3008`
+- `GPUSkinningPlayerJoint`
+- `Enemy2002`
+- `Enemy1105`
+- `Enemy2003`
+- `Enemy1104`
+- `weapon_shotgun`
+- `Enemy1402`
+- `weapon_bip`
+- `Enemy3006`
+- `Enemy2025`
+- `3rd_boss`
+- `BornNodeBoss`
+- `GPUSKinning_Material_Enemy2010`
+- `Enemy2010`
+- `weapon_ak47_gold`
+- `weapon_AK47_1gold`
+- `weapon_rpg_gold`
+- `weapon_rpg_1g`
+- `Enemy2028`
+- `DYNormalBullet`
+- `Hero0001`
+- `Hero1001_UI`
+- `weapon_ak47_goldalpha`
+- `GPUSKinning_Material_Enemy2012`
+- `MoveToBoss`
+- `BulletNode`
+- `weapon_shotgun_1g`
+- `weapon_shotgun_gold`
+- `weapon_crossbow_gold`
+- `weapon_crossbow_1g`
+- `weapon_rpg`
+- `weapon_rocket`
+- `UIWeaponSkinInfo`
+- `Survivor01_15`
+- `Survivor_15`
+- `Survivor_20`
+- `Survivor01_20`
+- `Survivor01_18`
+- `Survivor_18`
+- `Survivor01_19`
+- `Survivor_19`
+- `Survivor01_17`
+- `Survivor_17`
+- `Survivor01_16`
+- `Survivor_16`
+- `weapon_shotgun_goldalpha`
+- `weapon_crossbow_goldalpha`
+- `WeaponSkinModel`
+- `UIWeaponSkinDetail`
+- `WeaponSkinSkillBtn`
+- `UIWeaponSkinDetail_Property`
+- `Enemy10011`
+- `GPUSKinning_Material_Enemy1011`
+- `GPUSKinning_Material_Enemy1009`
+- `Enemy1013`
+- `GPUSKinning_Material_Enemy1013`
+- `Enemy10010`
+- `GPUSKinning_Material_Enemy1010`
+- `bullet_elmentall`
+- `bullet_Common_9m`
+- `bullet_Common_6.5m`
+- `bullet_Neoncrossboom`
+- `bullet_Lightning_arrester_emp_PVPboom`
+- `bullet_3701604`
+- `bullet_blaster`
+- `bullet_Common_8m`
+- `bullet_Lightning_arrester_emp_boom02`
+- `bullet_ice1`
+- `bullet_Common_3m`
+- `bullet_ak47`
+- `DYTrainNormalBullet`
+- `bullet_blackhole_huixing`
+- `bullet_railgun`
+- `bullet_train_snowball_ak47`
+- `bullet_Common_9.5m`
+- `bullet_Pluse_pvp`
+- `bullet_jiqiangta`
+- `bullet_whiteboom`
+- `bullet_Gundam`
+- `bullet_Emsaw_Saw`
+- `bullet_prick`
+- `bullet_syboom`
+- `bullet_Lightning_arrester_emp_boom`
+- `bullet_boreas1`
+- `bullet_pulse_skill01`
+- `bullet_emp`
+- `bullet_Common_5.5m`
+- `bullet_Emsaw_boom`
+- `bullet_boreas`
+- `bullet_StormBlossom_pvp`
+- `bullet_MG`
+- `bullet_fullscreen`
+- `bullet_shaojiao`
+- `bullet_bonfire`
+- `bullet_shotgun`
+- `bullet_Emsaw_lightning`
+- `bullet_Common_2m`
+- `bullet_Emsaw_boom1`
+- `bullet_Common_2.5m`
+- `bullet_Common_1m`
+- `bullet_hongzha`
+- `bullet_Emsaw`
+- `bullet_hurricane_hit`
+- `bullet_elec1`
+- `bullet_lavaburst`
+- `bullet_StormBlossom`
+- `bullet_blackhole_hit`
+- `bullet_Common_4.5m`
+- `bullet_Common_4m`
+- `DYJumpBullet`
+- `bullet_rpgboom`
+- `bullet_Lightning_arrester_emp_PVPzidan`
+- `bullet_crossbow`
+- `bullet_Common_6m`
+- `bullet_blackhole_pvp`
+- `bullet_blackhole_eff`
+- `bullet_caidan`
+- `bullet_rpg`
+- `bullet_rocketfear`
+- `bullet_pvpshuangyun`
+- `bullet_Common_5m`
+
+## Skills / upgrades / progression — metadata evidence
+
+- `skillpos6`
+- `skillpos5`
+- `skillpos4`
+- `skillpos3`
+- `skillpos1`
+- `skillpos2`
+- `UnionExploreBuildingInfoHud`
+- `leishenskill02`
+- `leishenskill01`
+- `leishenskill03`
+- `leishenskill01_pvp`
+- `GeneralRankRewardsUI`
+- `GeneralRankRewardsUI_Item`
+- `GeneralRankRewardsUI_Item_Reward`
+- `m_txt_level`
+- `Level`
+- `ImgSkillQua`
+- `m_SkinSkillBtn`
+- `TxtSkinSkillTitle`
+- `ImgSkillIcon`
+- `BtnSkinSkillDetailed`
+- `BtnSkinSkill`
+- `WeaponSkinSkillBtn`
+- `rb_skilldetail`
+- `rb_skilllocok`
+- `rb_skillunlock`
+- `bullet_pulse_skill01`
+- `bullet_levelup`
+- `bullet_pulse_skill02`
+- `UnionExploreMarchUI_MarchItem`
+- `UnionExploreMarchUI`
+- `UIUnionExploreQuest`
+- `UIUnionExploreQuest_Item`
+- `UIUnionExploreQuest_Item_Reward`
+- `UnionExploreContributeUI`
+- `UnionExploreGveBattleUI`
+- `UnionExploreRankUI_RankItem`
+- `UnionExploreRankUI`
+- `UIUnionExploreMrRule`
+- `UIUnionExploreMrRule_Info1`
+- `UIUnionExploreMrRule_Value`
+- `UIUnionExploreMrRule_Info2`
+- `GeneralRankUI`
+- `GeneralRankUI_PlayerItem`
+- `GeneralRankUI_RankItem`
+- `up_level_bg`
+- `up_arrow_level`
+- `SkillColor`
+- `CampBuildLevelCarbarn`
+- `levelRoot`
+- `level`
+- `level2`
+- `level3`
+- `level1`
+- `m_txt_expireDate`
+- `Core_skillS`
+- `Core_skillC`
+- `core_skillGold`
+- `Core_skillSS`
+- `core_skillCopy`
+- `UIUnionExploreAttrDetail_AdditionTitle`
+- `UIUnionExploreAttrDetail_AdditionItem`
+- `UIUnionExploreAttrDetail_AdditionInfo`
+- `UIUnionExploreAttrDetail`
+- `uav_skill_blue`
+- `uav_skill_red`
+- `m_txt_upgradeTips`
+- `UIUnionExploreGetEnergy`
+- `beetle_skill_red`
+- `beetle_skill_blue`
+- `youminglingmao_skill_red`
+- `youminglingmao_skill_blue`
+- `qie_skill_blue`
+- `qie_skill_red`
+- `dog_skill_red`
+- `dog_skill_blue`
+- `uav002_skill_blue`
+- `uav002_skill_red`
+- `wugui_skill_red`
+- `wugui_skill_blue`
+- `level1_doc`
+- `dragon_skill_blue`
+- `dragon_skill_red`
+- `destroy_skill_blue`
+- `destroy_skill_red`
+- `zaiezhifeng_skill_red`
+- `zaiezhifeng_skill_blue`
+- `robot_skill_blue`
+- `robot_skill_red`
+- `knapsack_skill_red`
+- `knapsack_skill_blue`
+- `magiccrystal_skill_red`
+- `magiccrystal_skill_blue`
+- `UpGradeTeXiao`
+- `boss_skill`
+- `reindeer_skill_blue`
+- `reindeer_skill_red`
+- `m_Campsiteskill`
+- `UnionExploreGveBattleLoseUI_RewardItem`
+- `UnionExploreGveBattleLoseUI`
+- `FirstChargeUpgradeGiftUI`
+- `FirstChargeUpgradeGiftUI_reward`
+- `UnionExploreGveBattleWinUI`
+- `UnionExploreGveBattleWinUI_RewardItem`
+- `google_img_americanexpress`
+- `UIUnionExploreMain`
+- `phenix_skill_red`
+- `phenix_skill_blue`
+- `UnionExploreMonsterDetailUI`
+- `UnionExploreMonsterDetailUI_MonsterInfoItem`
+- `skill02`
+- `skill03`
+- `skill01`
+- `wingsofsalvation_skill_blue`
+- `wingsofsalvation_skill_red`
+- `m_selectCarSkills`
+- `UnionExploreBattleArrayUI_WeaponIconBg`
+- `UnionExploreBattleArrayUI_basetip`
+- `m_skilltype_icon`
+- `m_skillbg`
+- `UnionExploreBattleArrayUI_SkillIconBg`
+- `m_SkillDetail`
+- `m_selectCarSkills1`
+- `UnionExploreBattleArrayUI_CarIconBg`
+- `m_CarShowSkillbg`
+- `i_SkillIconBg`
+- `m_SkillContent1`
+- `m_carSkills`
+- `m_skillicon`
+- `UnionExploreBattleArrayUI_CarShowSkill`
+- `UnionExploreBattleArrayUI_AvatarIconBg`
+- `UnionExploreBattleArrayUI`
+- `m_CarShowSkillIcon`
+- `m_CarShowSkillLevel`
+- `m_noticeskilltxt`
+- `m_Skilltype_icon`
+- `m_SkillNode`
+- `m_CarShowSkilltype_icon`
+- `m_SkillContent`
+- `i_CarShowSkill`
+- `m_SkillLv`
+- `m_Skill`
+- `m_noticeskilltxt1`
+- `m_SkillName`
+- `m_skills`
+- `cp_skill`
+- `RecommendUI_skillitem`
+- `m_SkillTipsNode`
+- `m_skill_title`
+- `m_SkillTipsLockNode`
+- `i_skillitem`
+- `UnionExploreTeamChestUI_PoolReward`
+- `UnionExploreTeamChestUI`
+- `UnionExploreTeamChestUI_TeamChest`
+- `m_SkillTxt`
+- `UnionExploreTeamEventUI_TeamEventItem`
+- `UnionExploreTeamEventUI_TeamEventItem_CampProductItem`
+- `UnionExploreTeamEventUI`
+- `UnionExploreTeamEventUI_TeamEventItem_AddAttr`
+- `UnionExplorePersonCampOccupyUI`
+- `UnionExplorePersonCampOccupyUI_AwardItem`
+- `m_RewardBoxPos`
+- `img_level3s3`
+- `i_special_skillitem`
+- `AdvantureCollectionUI_special_skillitem`
+- `img_level3s1`
+- `AdvantureCollectionUI_normal_skillitem`
+- `m_LevelIcon`
+- `m_TxtSkillDesc`
+- `img_level3s2`
+- `i_normal_skillitem`
+- `ui_skill_1`
+- `MopPassMaxPassUI`
+- `MopPassMaxPassUI_ItemNode`
+- `sactx-0-512x1024-ASTC 6x6-UIUnionExploreMain-95a0e7ec`
+- `skill01_start`
+- `skill01_end`
+- `UnionExploreEnergyChestUI_RewardBox`
+- `UnionExploreEnergyChestUI`
+- `UnionExploreEnergyChestUI_EnergyChest`
+
+## Drops / reward readability — metadata evidence
+
+- `GveRewardEffectUi`
+- `GveRewardEffectUi_RewardItem`
+- `i_RewardItem`
+- `RewardImage`
+- `TeamPlayAchievementRewardUI`
+- `TeamPlayAchievementRewardUI_LvItem`
+- `m_RewardNode`
+- `TeamPlayAchievementRewardUI_LvItem_RewardItem`
+- `chest_1`
+- `chest_2`
+- `chest_2_2`
+- `GeneralRankRewardsUI`
+- `GeneralRankRewardsUI_Item`
+- `i_Reward`
+- `GeneralRankRewardsUI_Item_Reward`
+- `reward_bg`
+- `TriggerThinkingGiftUI_reward`
+- `i_reward`
+- `m_BtnGetReward`
+- `UIUnionExploreQuest_Item_Reward`
+- `m_RewardInfo`
+- `PassRewardsUI_pass`
+- `PassRewardsUI_pass_btn_passReward`
+- `txt_rewards`
+- `PassRewardsUI_btn_passIcon`
+- `PassRewardsUI_btn_passRewards`
+- `i_btn_passReward`
+- `PassRewardsUI`
+- `m_btn_getAllRewards`
+- `i_btn_passRewards`
+- `rewardsNode`
+- `rewardIcon`
+- `reward2`
+- `m_rewardIcon2`
+- `m_btnClickReward2`
+- `rewardBg`
+- `m_btnClickReward`
+- `txtReward`
+- `reward`
+- `m_txtRewardNum`
+- `m_txtRewardNum2`
+- `reward1`
+- `m_Dropdown`
+- `Dropdown`
+- `m_RewardBtn`
+- `m_RewardUnselected`
+- `PermanentFirstRewardComUI`
+- `m_RewardLock`
+- `RewardsNode`
+- `PermanentFirstRewardComUI_Item_Reward`
+- `PermanentFirstRewardComUI_Item`
+- `RewardsScrollView`
+- `m_RewardUnlock`
+- `m_ImgRankRewardRP`
+- `uiEffect_canRewardTip`
+- `FallRewardsUI_item`
+- `FallRewardsUI`
+- `m_img_rewards2`
+- `m_img_rewards1`
+- `personChest_gao`
+- `personChest_zhong`
+- `personChest`
+- `rewardsScrollView`
+- `RewardNode`
+- `m_rewardsNode`
+- `m_RewardsNodes`
+- `i_rewardItem`
+- `ItemOptionalUI_rewarditem`
+- `i_rewarditem`
+- `ItemDescUI_itemNode_rewardItem`
+- `m_rewarditem`
+- `FlootRoot`
+- `FlootNode`
+- `m_FlootRoot`
+- `teamChest`
+- `rewardnode`
+- `MergeServerActivityPopUI_Reward`
+- `fr_rewardbg`
+- `m_RewardIconCharge`
+- `m_RewardIconSend`
+- `ArenaRewardsUI_rankItem`
+- `SeasonsRankRewardsUI`
+- `i_rankRewards`
+- `m_rewardBtn`
+- `SeasonsRankRewardsUI_rankRewards`
+- `m_RewardsScrollView`
+- `UnionExploreGveBattleLoseUI_RewardItem`
+- `FirstChargeGiftUI_reward`
+- `FirstChargeUpgradeGiftUI_reward`
+- `UnionExploreGveBattleWinUI_RewardItem`
+- `m_rewardNode`
+- `m_txt_questRewardNum`
+- `m_img_questReward`
+- `rewardlight`
+- `p_energyChest`
+- `m_energyChest`
+- `m_energyChestBpRp`
+- `m_BtnEnergyChest`
+- `t_energyChest`
+- `TeamPlayAchievementUI_QuestItem_RewardItem`
+- `m_BtnBoxReward`
+- `m_BoxRewarded`
+- `m_Rewards`
+- `m_GetRewardCompleteImg`
+- `m_GetRewardBtn`
+- `m_GetRewardBtnImg`
+- `m_GetRewardBtnText`
+- `m_GetRewardBtnPos`
+- `m_NoRewardBtnImg`
+- `m_teamChest`
+- `UnionExploreTeamChestUI_PoolReward`
+- `i_TeamChest`
+- `bg_chest`
+- `m_rewardContent`
+- `i_PoolReward`
+- `UnionExploreTeamChestUI`
+- `m_txtReward`
+- `m_reward`
+- `m_txtRewardDesc`
+- `UnionExploreTeamChestUI_TeamChest`
+- `m_btnReward`
+- `m_RewardTips`
+- `RewardBoxTipTextSpace`
+- `i_RewardBoxItem`
+- `m_RewardBoxPos`
+- `m_GetRewardBoxBtn`
+- `TrialUI_TrailItem_RewardBoxItem`
+- `RewardBoxTipText`
+- `m_RewardBoxImg`
+- `RewardPreviewScrollView`
+- `icon_energy_chest`
+- `UnionExploreEnergyChestUI_RewardBox`
+- `i_RewardBox`
+- `UnionExploreEnergyChestUI`
+- `UnionExploreEnergyChestUI_EnergyChest`
+- `m_strengthChest`
+- `UnionExploreEnergyChestUI_PoolReward`
+- `i_EnergyChest`
+- `m_Reward`
+- `i_rewardPveNode`
+- `m_CityReward`
+- `SeasonEventCityUI_rewardCityNode`
+- `SeasonEventPveUI_rewardPveNode`
+- `m_ResNoRewardTip`
+- `m_PveReward`
+- `i_rewardCityNode`
+- `i_RewardItems`
+- `m_DoubleReward`
+- `TeamPlayBattleSettlement_RewardItems`
+- `i_TeamChestRewardItem`
+- `i_PersonChestRewardItem`
+- `UnionExploreEventUI_TeamChestRewardItem`
+- `i_PersonCampRewardItem`
+- `m_btnTeamChestRule`
+- `m_personChest`
+- `m_PersonChestRule`
+- `UnionExploreEventUI_PersonChestRewardItem`
+- `m_btnOpenTeamChest`
+- `m_txtTeamChestRule`
+- `m_teamChestContent`
+- `m_btnOpenPersonChest`
+- `m_personChestContent`
+- `m_btnPersonChestRule`
+- `UnionExploreEventUI_PersonCampRewardItem`
+- `m_teamChestRule`
+- `i_rewardNode`
+- `i_itemReward`
+- `ActivityQuestsUI_itemReward`
+- `ActivityQuestsUI_task_rewardNode`
+- `m_PhaseTaskReward`
+- `m_btn_RewardCollect`
+- `m_btn_RewardCollectLock`
+- `m_rewardTips`
+- `m_ImageRewardGet`
+- `m_RewardButton`
+- `m_RewardShow`
+- `m_RewardView`
+- `m_ImageRewardShow`
+- `m_RewardContent`
+- `m_ImageReward`
+
+## HUD / meta screens / navigation — metadata evidence
+
+- `Canvas`
+- `CanvasScaler`
+- `Canvas1`
+- `UIUnionGveGroundCellHud`
+- `UnionExploreBuildingInfoHud`
+- `HudTextController`
+- `UIUnionGveRoleHudItem`
+- `UIUnionGveRoleHud`
+- `Button`
+- `ButtonCtrl`
+- `hudun`
+- `Panel`
+- `m_UICanvas`
+- `m_Canvas1`
+- `m_Canvas3`
+- `m_Canvas2`
+- `shop_tabguifeng`
+- `shop_tabmaolong`
+- `button_1`
+- `Canvas2`
+- `CampBuildLevelCarbarn`
+- `hud`
+- `campski_future05`
+- `ButtonOnPressed`
+- `m_button`
+- `teamCamp`
+- `teamCampSnow`
+- `texiao_shop_m4`
+- `ActivityButton`
+- `9button`
+- `SeasonsRankRewardsUI`
+- `SeasonsRankUI`
+- `SeasonsRankUI_FactionRankItem`
+- `SeasonsRankRewardsUI_rankRewards`
+- `SeasonsRankUI_PlayerRankItem`
+- `m_Campsiteskill`
+- `Canvas3`
+- `SeasonCamera`
+- `Canvas_dynamic`
+- `Canvas_static`
+- `m_btnSkipChallenge`
+- `button_3`
+- `button_2`
+- `m_btnChallenge`
+- `shopBg_guifeng`
+- `personCamp`
+- `shopBg_maolong`
+- `personCampSnow`
+- `sactx-0-512x1024-ASTC 6x6-CampMain-2fb2ed94`
+- `CampMain`
+- `cm_shop`
+- `cm_sunshop`
+- `cm_shopbg`
+- `m_Season`
+- `m_CampPrivilege`
+- `cb_CampPrivilege`
+- `m_ShopStatusPos`
+- `m_BgCanvas`
+- `i_CampProductItem`
+- `m_camp`
+- `UnionExploreTeamEventUI_TeamEventItem_CampProductItem`
+- `m_CampContent`
+- `UnionExplorePersonCampOccupyUI`
+- `UnionExplorePersonCampOccupyUI_AwardItem`
+- `texiao_hudun`
+- `m_TrialWhatPanelCloseBtn`
+- `season_tab_text`
+- `m_season_tab`
+- `m_season_tab_selected`
+- `cb_buttondetail`
+- `cb_buttonresearch`
+- `UIMoveAndButton`
+- `cb_buttonaccelerate`
+- `cb_buttonstorage`
+- `cb_buttonok`
+- `sactx-0-1024x512-ASTC 6x6-UIMoveAndButton-1f83db69`
+- `cb_buttonlvup`
+- `cb_buttoncancel`
+- `cb_buttonbg`
+- `UnionBargainShopUI`
+- `m_shopname`
+- `UnionBargainShopUI_tips`
+- `SeasonAddFight`
+- `S1_Button2`
+- `SeasonEventDefendUI`
+- `S1_Button1`
+- `SeasonEventResUI`
+- `SeasonEventPveUI`
+- `SeasonEventCityUI`
+- `SeasonEventDefendUI_PlayerItem`
+- `SeasonEventCityUI_rewardCityNode`
+- `SeasonEventPveUI_rewardPveNode`
+- `sactx-0-2048x1024-ASTC 8x8-SeasonArmorMainUI-2d6d8d95`
+- `SeasonArmorMainUI`
+- `rshop_fenjiebg`
+- `m_btnTeamCampComplete`
+- `m_teamCampMonster`
+- `m_btnChallengePerson`
+- `m_btnPersonCampComplete`
+- `m_btnTeamCampConditionRule`
+- `i_PersonCampRewardItem`
+- `m_teamCampDesc`
+- `m_teamCampRule`
+- `m_personCampRule`
+- `m_personCampContent`
+- `m_teamCamp`
+- `m_teamCampContent`
+- `m_btnPersonCamp`
+- `m_btnPersonCampRule`
+- `m_btnChallengeBoss`
+- `m_canvasLab`
+- `m_btnTeamCampNoChallenge`
+- `m_btnTeamCampRule`
+- `m_btnChallengeTeam`
+- `m_btnBossNoChallenge`
+- `m_personCamp`
+- `m_txtCampCondition`
+- `m_canvas`
+- `m_btnCampMonsterRule`
+- `UnionExploreEventUI_PersonCampRewardItem`
+- `m_teamCampCondition`
+- `bp_gearlock`
+- `SeasonsPveCrystalIconNode`
+- `cb_shopqicondelect`
+- `SeasonArmorIconNode`
+- `m_equipment`
+- `ServerCakeStage5`
+- `ServerCakeStage2`
+- `ServerCakeStage6`
+- `ServerCakeStage7`
+- `ServerCakeStage8`
+- `ServerCakeStage1`
+- `ServerCakeStage3`
+- `ServerCakeStage4`
+- `m_buttonTipNode`
+- `m_CurrentStageTxt`
+- `rshop_resbg`
+- `StageImage`
+- `SeasonEffectNode`
+- `challengeTopBg`
+- `challenge_bg`
+- `challenge_lock`
+- `m_RewardButton`
+- `ChallengeUI`
+- `ChallengeDetailUI_ChallengeContent`
+- `challenge_btnmask`
+- `ChallengeDetailUI_HeroContent`
+- `ChallengeUI_ChapterView`
+- `challengeContent`
+- `ChallengeUI_ChapterView_PassView`
+- `ChallengeUI_itemNode`
+- `i_ChallengeContent`
+- `ChallengeDetailUI`
+- `ChallengeDetailUI_RewardItem`
+- `m_ItemButton`
+- `PayButton`
+- `HelpButtonText`
+- `HelpButton`
+- `MakeUpButton`
+- `m_CloseButton`
+- `LockedButton`
+- `ChangeButton`
+- `GoButton`
+- `ButtonRoot`
+- `HelpButtonRedPoint`
+- `ClaimButton`
+- `m_CheckButton`
+- `m_ConfirmButton`
+- `SeasonsTeamBuildUI`
+- `SeasonsTeamArrayUI_robot_icon`
+- `SeasonsTeamArrayUI_basetip`
+- `SeasonsTeamArrayUI_WeaponIconBg`
+- `SeasonAppointTime`
+- `SeasonsTeamSelectUI_team`
+- `SeasonsTeamArrayUI_RobotIconBg`
+- `SeasonsTeamBuildUI_CarShowSkill`
+- `SeasonsTeamSelectUI`
+- `SeasonsTeamArrayUI_CarShowSkill`
+- `SeasonsTeamArrayUI`
+- `SeasonsTeamArrayUI_SkillIconBg`
+
+## VFX / camera / materials / feedback — metadata evidence
+
+- `UnionCamera`
+- `shadow`
+- `dc_shadow02`
+- `VolcanoCamera`
+- `EffectCamera`
+- `_SDJ_car_Main Camera`
+- `BossCamera`
+- `CarCamera`
+- `ShockCamera`
+- `WeaponSkinDetailCamera`
+- `Camera`
+- `MainCamera`
+- `ReachableTileEffect`
+- `UnReachableTileEffect`
+- `ReachableMultiTileEffect`
+- `ShadowOptimize`
+- `DYShadowListener`
+- `GveRewardEffectUi`
+- `GveRewardEffectUi_RewardItem`
+- `ReceiveShadow`
+- `dc_shadow02_custom`
+- `Default-Material`
+- `GPUSKinning_Material_Enemy2010`
+- `moto_light02`
+- `moto_light01`
+- `GPUSKinning_Material_Enemy2012`
+- `CameraNode`
+- `UICamera`
+- `DireLight`
+- `ClearCamera`
+- `ShakecameraControl`
+- `Spot Light`
+- `Directional Light`
+- `CameraCtrlNode`
+- `ShakeNode`
+- `ProtectCameraFromWallClip`
+- `ShakeCamera`
+- `DuoplayCamera`
+- `DuoplayCamera_DownToUp`
+- `DuoplayCamera_UpToDown`
+- `DuoplayCamera_Member_UpToDown`
+- `DuoplayCamera_Member`
+- `DuoplayCamera_Member_DownToUp`
+- `m_txt_inbattle_shadow`
+- `Shadow`
+- `img_rankbottonshadow`
+- `GPUSKinning_Material_Enemy1011`
+- `GPUSKinning_Material_Enemy1009`
+- `GPUSKinning_Material_Enemy1013`
+- `GPUSKinning_Material_Enemy1010`
+- `bullet_Lightning_arrester_emp_PVPboom`
+- `bullet_Lightning_arrester_emp_boom02`
+- `bullet_Lightning_arrester_emp_boom`
+- `bullet_Emsaw_lightning`
+- `bullet_Lightning_arrester_emp_PVPzidan`
+- `bullet_Lightning_arrester_emp_zidan`
+- `bullet_starlight`
+- `GPUSKinning_Material_Enemy1014`
+- `GPUSKinning_Material_Enemy10015`
+- `GPUSKinning_Material_Enemy10013`
+- `GPUSKinning_Material_Enemy1008`
+- `GPUSKinning_Material_Enemy10014`
+- `GPUSKinning_Material_Enemy10012`
+- `HeadEffectPos`
+- `HeadFrameEffectPos`
+- `Font Material`
+- `pass_shadow`
+- `m_lightDT`
+- `bp_lvlight`
+- `txtMrEffect`
+- `m_TxtMrEffect`
+- `MoneyBagLight`
+- `DYEffectNode`
+- `uiEffect_canRewardTip`
+- `UIParticle`
+- `fightEffect`
+- `btn_green_shadow`
+- `m_RoleEffect`
+- `MarchTargetEffect`
+- `InCamera`
+- `OutCamera`
+- `TurnShowEffect_blt`
+- `RobotEffect_blt`
+- `FlowLight`
+- `FlowLight2`
+- `FlowLightXY`
+- `FlowLight4`
+- `FlowLight5`
+- `FlowLight3`
+- `Main Camera`
+- `effect`
+- `Particle System`
+- `Default-ParticleSystem`
+- `Particle System (8)`
+- `FootEffect`
+- `Particle System (6)`
+- `Default-Particle`
+- `Particle System (7)`
+- `EffectNode`
+- `BackLabCamera`
+- `m_bglight`
+- `prepareEffect`
+- `completeEffect`
+- `AppellationEffectPos`
+- `Effect`
+- `MopPassLight`
+- `Effects`
+- `img_light`
+- `img_robotquashadow`
+- `SeasonCamera`
+- `SCamera`
+- `roleshadow`
+- `m_light_collect`
+- `m_ItemEffect`
+- `bglightbg`
+- `rewardlight`
+- `m_EffectFinishTeam`
+- `m_EffectFinishPersonal`
+- `m_BoxReceiveEffect`
+- `GPUSKinning_Material_Enemy2005`
+- `GPUSKinning_Material_Enemy2008`
+- `m_outLight`
+- `img_light_S`
+- `UIParticleOrderAdapter`
+- `Material #25`
+- `CloudMaterial3x3`
+- `CloudMaterial4x4`
+- `CloudMaterial2x2`
+- `CloudMaterial1x1`
+- `CloudMaterial02_01`
+- `CloudMaterial02_02`
+- `shengdanjie_light`
+- `trail_change2`
+- `TrialUI_TrailItem`
+- `TrialUI_TrailItem_RewardBoxItem`
+- `i_TrailItem`
+- `New Material`
+- `Light`
+- `GPUSKinning_Material_Enemy2007`
+- `zh SDF Material`
+- `m_Light_Collect`
+- `GPUSKinning_Material_Enemy1007`
+- `Particle System (1)`
+- `Particle System (5)`
+- `Inu_Particles_Fresnel Simple`
+- `Particle System (3)`
+- `Particle System (2)`
+- `Inu_Particles_Fresnel Simple02`
+- `Particle`
+- `Material #123`
+- `eq_bg_light`
+- `eq_all_light`
+- `m_progressEffect`
+- `m_bossHpEffect`
+- `m_progressEffectLab`
+- `effect_MechZombie_skill_cai01_2`
+- `effect_MechZombie_skill_cai01_huixue`
+- `effect_MechZombie_skill_fullscreen_01`
+- `effect_mechZombie_attackhit`
+- `effect_MechZombie_skill_cai01_1`
+- `effect_MechZombie_skill_cai01_3`
+- `effect_MechZombie_skill_boom_01`
+- `effect_mechZombie_idle_bat`
+- `effect_MechZombie_skill_debuff_01`
+- `effect_MechZombie_skill_boom_02`
+- `effect_mechZombie_attack`
+- `firstgift_light`
+- `GveMainCamera01`
+- `SaiBo_car_Main Camera01`
+- `purpleBg_light`
+- `bp_shadow`
+- `blueBg_light`
+- `GPUSKinning_Material_Enemy1000_shilaimu`
+- `m_evolutionEffect`
+- `lighting effect (1)`
+- `light_effect`
+- `m_Effect`
+- `m_light`
+- `GPUSKinning_Material_Enemy2017`
+- `SP1_Effect_fire1`
+
+## Companions / robots / vehicles — metadata evidence
+
+- `robot_zaiezhifeng_2`
+- `robot_zaiezhifeng_1`
+- `Robot_xuanfeng`
+- `Robot`
+- `Robot2`
+- `Robot_dianju`
+- `ArenaPetNode`
+- `RobotEffect_blt`
+- `Robots`
+- `robot_bip08`
+- `Robot002_ui`
+- `Robot002`
+- `Robot001`
+- `robot_bip05`
+- `Robot001_ui`
+- `robot_blue`
+- `robot_red`
+- `robot_skill_blue`
+- `robot_skill_red`
+- `weapon_pet_aircraft_ui`
+- `weapon_pet_aircraft`
+- `img_robotqua_old`
+- `img_robotquashadow`
+- `img_robotqua`
+- `mainShowRobot_guifeng`
+- `mainShowRobot_maolong`
+- `m_RobotLayout`
+- `m_img_lockRobot`
+- `m_SuperRobotQuality`
+- `m_RobotNdoe`
+- `airvehicle_bip`
+- `m_RobotNameText`
+- `m_RobotTrialRedPoint`
+- `TrialConfirmUI_RobotNameNode`
+- `RobotPos`
+- `m_RobotTrialToggle`
+- `i_RobotNameNode`
+- `m_RobotUp`
+- `i_RobotUpitem`
+- `AdvantureCollectionDetailUI_RobotUpitem`
+- `m_TxtRobotUpOrigin`
+- `Eff_Robot_dun_custom`
+- `Eff_Robot_dun`
+- `AirVehicle`
+- `AirVehicle_d`
+- `robotProArrow`
+- `DYGhostPet`
+- `robot001_skill02_xiaoshi`
+- `Eff_Robot_raodong`
+- `Eff_robot_kongqibo`
+- `robot001_skill02_chixu`
+- `m_RobotIcon`
+- `RobotSkinStar`
+- `RobotIconNode`
+- `m_ResonanceRobotIcon`
+- `m_ResonanceRobot`
+- `ItemRobotSkinStar`
+- `PetDamageToggle`
+- `SeasonsTeamArrayUI_robot_icon`
+- `m_RobotMask`
+- `robotinfor`
+- `m_RobotContent`
+- `SeasonsTeamArrayUI_RobotIconBg`
+- `m_SelectRobots`
+- `m_robotNum`
+- `m_robot_icon1`
+- `i_robot_icon`
+- `i_RobotIconBg`
+- `CompetitiveChallengeRandomCiTiaoPop`
+- `CompetitiveChallengeUI`
+- `CompetitiveChallengeRandomCiTiaoPop_CiTiaoInfo`
+- `CompetitiveChallengeUI_ChapterView_itemNode`
+- `CompetitiveChallengeRankUI`
+- `CompetitiveChallengeRankUI_selfcitiaoItem`
+- `CompetitiveChallengeRankUI_rankItem`
+- `CompetitiveChallengeRankUI_rankItem_citiaoItem`
+- `CompetitiveChallengeUI_ChapterView`
+- `rshop_robot`
+- `DYMagneticPet`
+- `DYLiMaoPet`
+- `mainShowRobot_shred`
+- `robotLogo_shred`
+- `robotBG_shred`
+- `m_petbg`
+- `m_txt_robotName`
+- `m_img_robot`
+- `robotIcon`
+- `GetNewRobotUI`
+- `m_txt_robotdesc`
+- `m_Model_Robot`
+- `robotBG_xuanfeng`
+- `robotLogo_xuanfeng`
+- `mainShowRobot_xuanfeng`
+- `DYNormalWpnPet`
+- `m_robot`
+- `m_robot_3_root`
+- `m_robot_icon_root`
+- `m_icon_robot`
+- `PlayerInfoUI_robot_icon`
+- `m_robot_1_root`
+- `m_robot_4_root`
+- `m_robot_2_root`
+- `EquipmentUI_robot_icon`
+- `mainShowRobot_hamster`
+- `robotLogo_hamster`
+- `robotBG_hamster`
+- `m_robottips`
+- `m_payrobottips`
+- `txt_PaidTopRobot`
+- `UIRobotSkinStarUpResult`
+- `UIRobotSkinSkillDetail`
+- `UIRobotSkinStarUp_Property`
+- `UIRobotSkinGet`
+- `UIRobotSkinSkillDetail_SkinSkill`
+- `UIRobotSkinItemDetail`
+- `UIRobotSkinStarUpResult_Property`
+- `robot_skin_skill`
+- `UIRobotSkinStarUp`
+- `UIRobotSkinItemDetail_Property`
+- `DYFlowerPet`
+- `petPos`
+- `petPoint1`
+- `petPoint2`
+- `robotLogo_rabbit`
+- `mainShowRobot_rabbit`
+- `robotBG_rabbit`
+- `robotBG_motorcyclepi`
+- `mainShowRobot_motorcyclepi`
+- `robotLogo_motorcyclepi`
+- `DrawRateRobotUI_Item_RewardItem`
+- `DYYuanYuanPet`
+- `ArenaBattleArrayUI_RobotIconBg`
+- `PetSkillIconShow`
+- `ArenaBattleArrayUI_robot_icon`
+- `m_RobotProgressImg`
+- `m_RobotVideo2`
+- `m_RobotLotteryShopClose`
+- `RobotVideoNode`
+- `m_RobotLotteryRuleClose`
+- `m_RobotGrayBtn`
+- `m_RobotVideo1Tips`
+- `m_RobotVideoOpen`
+- `m_RobotNode`
+- `RobotProgress`
+- `m_RobotVideo1`
+- `RobotIcon`
+- `m_RobotTab`
+- `m_RobotItemBtn1Selected`
+- `m_RobotScheduleTxt`
+- `RobotProgressBg`
+- `m_RobotConvertBtn`
+- `m_RobotItemBtn1`
+- `m_RobotChipIcon`
+- `RobotItem1`
+- `DrawRateRobotUI_Item`
+- `DYQiePet`
+- `RobotRankUpResultUI_Property`
+- `m_robotShowImg`
+- `robotNode`
+- `robotLogo_tuantuan`
+- `robotBG_tuantuan`
+- `robotEventBG_tuantuan`
+- `mainShowRobot_tuantuan`
+- `m_robot_two_1_root`
+- `m_robot_three_2_root`
+- `m_robot_three_1_root`
+- `m_robot_four_4_rootBg`
+- `m_robot_four_1_rootBg`
+- `m_robot_three_3_root`
+- `m_robot_two_2_root`
+- `m_robot_four_2_rootBg`
+- `m_robot_four_3_rootBg`
+- `robotBG_jiangbing`
+- `robotEventBG_jiangbing`
+- `mainShowRobot_jiangbing`
+- `robotLogo_jiangbing`
+- `mainShowRobot_zixuan`
+- `robotBG_zixuan`
+- `robotLogo_zixuan`
+- `robotEventBG_zixuan`
+
+## Visual production implications for Deadline Zero
+
+- **Treat the player silhouette as the camera anchor.** A survivor-shooter benefits from stable framing and strong actor/background contrast.
+- **Use texture resolution strategically.** High-resolution hero/weapon/boss art matters more than uniformly increasing every texture.
+- **Build VFX as a layered system.** Particle/material/shader diversity should reinforce hits, danger, pickups, upgrades and reward moments without obscuring telegraphs.
+- **Keep upgrades visually scannable.** Rarity, iconography, synergy state and the next meaningful choice should parse before the player reads full descriptions.
+- **Use dense content architecture without visual clutter.** More enemy types, systems and reward layers only help if their silhouettes and UI priorities remain distinct.
+- **Meta screens need focal objects.** Character, weapon, chest, equipment and reward screens should show the object prominently instead of presenting text-only tables.
+- **Victory/reward moments should escalate.** Completion should visibly exceed ordinary menu presentation through motion, iconography and reward hierarchy.
+- **Do not copy Zombie Waves assets, text, code, branding, exact layouts or character designs.** Reuse only abstract production lessons and measurable presentation patterns.
+
+## Parser notes
+
+- Metadata parse issues recorded: **0**. See `metadata-summary.json` for file-level evidence.
+- IL2CPP/global-metadata semantic strings are identifiers/evidence only; they are not treated as recovered source code.

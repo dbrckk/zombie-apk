@@ -1,0 +1,3 @@
+input/xapk/base_assets.apk
+input/xapk/com.ddup.zombiewaves.zw.apk
+input/xapk/config.arm64_v8a.apk

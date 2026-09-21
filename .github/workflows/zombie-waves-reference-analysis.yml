@@ -1,0 +1,424 @@
+name: Analyze Zombie Waves reference
+
+on:
+  push:
+    branches:
+      - analysis/zombie-waves-reference
+    paths:
+      - '.github/workflows/zombie-waves-reference-analysis.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zombie-waves-reference-analysis
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Download verified Zombie Waves XAPK
+        env:
+          SOURCE_URL: https://d.apkpure.net/b/XAPK/com.ddup.zombiewaves.zw?version=latest
+          EXPECTED_PACKAGE: com.ddup.zombiewaves.zw
+          EXPECTED_CERT_SHA1: 8fecea485b6721c19b7b2d54724f8ccf022eda20
+        run: |
+          set -euo pipefail
+          rm -rf input extracted decoded analysis/zombie-waves-reference
+          mkdir -p input extracted decoded analysis/zombie-waves-reference/raw
+
+          curl --fail --location --retry 5 --retry-delay 3 --retry-all-errors \
+            --connect-timeout 30 --max-time 2400 \
+            --user-agent 'Mozilla/5.0 (X11; Linux x86_64) DeadlineZeroReferenceAudit/1.0' \
+            --referer 'https://apkpure.net/zombie-waves/com.ddup.zombiewaves.zw/download' \
+            "$SOURCE_URL" -o input/ZombieWaves.xapk
+
+          test -s input/ZombieWaves.xapk
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('input/ZombieWaves.xapk')
+          size=p.stat().st_size
+          if size < 500_000_000:
+              raise SystemExit(f'XAPK unexpectedly small: {size} bytes')
+          print(f'XAPK bytes: {size}')
+          PY
+          unzip -tq input/ZombieWaves.xapk
+          sha256sum input/ZombieWaves.xapk | tee analysis/zombie-waves-reference/raw/XAPK-SHA256.txt
+          unzip -l input/ZombieWaves.xapk > analysis/zombie-waves-reference/raw/xapk-file-list.txt
+          unzip -q input/ZombieWaves.xapk -d input/xapk
+
+          printf '%s\n' "$SOURCE_URL" > analysis/zombie-waves-reference/raw/source-url.txt
+          printf '%s\n' "$EXPECTED_PACKAGE" > analysis/zombie-waves-reference/raw/expected-package.txt
+          printf '%s\n' "$EXPECTED_CERT_SHA1" > analysis/zombie-waves-reference/raw/expected-cert-sha1.txt
+
+      - name: Install APK and Unity metadata tooling
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y >/dev/null
+          sudo apt-get install -y apktool aapt apksigner unzip jq file binutils >/dev/null
+          python3 -m pip install --disable-pip-version-check 'UnityPy>=1.23,<2' >/dev/null
+          apktool --version | tee analysis/zombie-waves-reference/raw/apktool-version.txt
+          apksigner version | tee analysis/zombie-waves-reference/raw/apksigner-version.txt
+          python3 - <<'PY' | tee analysis/zombie-waves-reference/raw/unitypy-version.txt
+          import UnityPy
+          print(getattr(UnityPy, '__version__', 'unknown'))
+          PY
+
+      - name: Identify base APK and verify authenticity markers
+        env:
+          EXPECTED_PACKAGE: com.ddup.zombiewaves.zw
+          EXPECTED_CERT_SHA1: 8fecea485b6721c19b7b2d54724f8ccf022eda20
+        run: |
+          set -euo pipefail
+          find input/xapk -type f -name '*.apk' -print | sort > analysis/zombie-waves-reference/raw/apk-files.txt
+          test -s analysis/zombie-waves-reference/raw/apk-files.txt
+
+          BASE_APK=""
+          while IFS= read -r apk; do
+            badging="$(aapt dump badging "$apk" 2>/dev/null | head -n1 || true)"
+            if [ -n "$badging" ] && ! printf '%s' "$badging" | grep -q " split='"; then
+              BASE_APK="$apk"
+              break
+            fi
+          done < analysis/zombie-waves-reference/raw/apk-files.txt
+
+          if [ -z "$BASE_APK" ] && [ -s "input/xapk/com.ddup.zombiewaves.zw.apk" ]; then
+            BASE_APK="input/xapk/com.ddup.zombiewaves.zw.apk"
+          fi
+          if [ -z "$BASE_APK" ]; then
+            BASE_APK="$(while IFS= read -r apk; do stat -c '%s %n' "$apk"; done < analysis/zombie-waves-reference/raw/apk-files.txt | sort -nr | tail -n1 | cut -d' ' -f2-)"
+          fi
+          test -s "$BASE_APK"
+          echo "$BASE_APK" | tee analysis/zombie-waves-reference/raw/base-apk-path.txt
+
+          aapt dump badging "$BASE_APK" | tee analysis/zombie-waves-reference/raw/aapt-badging.txt
+          PACKAGE="$(aapt dump badging "$BASE_APK" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -n1)"
+          VERSION="$(aapt dump badging "$BASE_APK" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p" | head -n1)"
+          [ "$PACKAGE" = "$EXPECTED_PACKAGE" ] || { echo "Unexpected package: $PACKAGE"; exit 1; }
+          echo "$VERSION" | tee analysis/zombie-waves-reference/raw/version-name.txt
+
+          apksigner verify --print-certs "$BASE_APK" | tee analysis/zombie-waves-reference/raw/signing-certs.txt
+          CERT="$(awk -F': ' '/Signer #1 certificate SHA-1 digest/ {print tolower($2); exit}' analysis/zombie-waves-reference/raw/signing-certs.txt | tr -d ':[:space:]')"
+          echo "$CERT" | tee analysis/zombie-waves-reference/raw/actual-cert-sha1.txt
+          [ "$CERT" = "$EXPECTED_CERT_SHA1" ] || {
+            echo "Certificate mismatch. Expected $EXPECTED_CERT_SHA1, got $CERT"
+            exit 1
+          }
+
+      - name: Decode base resources and collect split inventories
+        run: |
+          set -euo pipefail
+          BASE_APK="$(cat analysis/zombie-waves-reference/raw/base-apk-path.txt)"
+          apktool d -f -s "$BASE_APK" -o decoded/base >/dev/null
+          cp decoded/base/AndroidManifest.xml analysis/zombie-waves-reference/raw/AndroidManifest.xml
+
+          : > analysis/zombie-waves-reference/raw/all-apk-entries.txt
+          : > analysis/zombie-waves-reference/raw/native-libraries.txt
+          : > analysis/zombie-waves-reference/raw/asset-files.txt
+          : > analysis/zombie-waves-reference/raw/apk-sizes.txt
+          while IFS= read -r apk; do
+            name="$(basename "$apk")"
+            stat -c "%s  $name" "$apk" >> analysis/zombie-waves-reference/raw/apk-sizes.txt
+            {
+              echo "===== $name ====="
+              unzip -Z1 "$apk"
+            } >> analysis/zombie-waves-reference/raw/all-apk-entries.txt
+            unzip -Z1 "$apk" | grep '^lib/' | sed "s#^#$name  #" >> analysis/zombie-waves-reference/raw/native-libraries.txt || true
+            unzip -Z1 "$apk" | grep '^assets/' | sed "s#^#$name  #" >> analysis/zombie-waves-reference/raw/asset-files.txt || true
+
+            safe="$(printf '%s' "$name" | tr -c 'A-Za-z0-9._-' '_')"
+            mkdir -p "extracted/$safe"
+            unzip -q "$apk" 'assets/*' -d "extracted/$safe" 2>/dev/null || true
+          done < analysis/zombie-waves-reference/raw/apk-files.txt
+
+          find input/xapk -type f -name '*.obb' -print | sort > analysis/zombie-waves-reference/raw/obb-files.txt || true
+          while IFS= read -r obb; do
+            [ -n "$obb" ] || continue
+            name="$(basename "$obb")"
+            if unzip -tq "$obb" >/dev/null 2>&1; then
+              mkdir -p "extracted/obb-$name"
+              unzip -q "$obb" -d "extracted/obb-$name"
+            fi
+          done < analysis/zombie-waves-reference/raw/obb-files.txt
+
+          find extracted -type f -printf '%s\t%p\n' | sort -nr > analysis/zombie-waves-reference/raw/extracted-files-by-size.tsv
+          du -sh input/ZombieWaves.xapk input/xapk extracted decoded/base | tee analysis/zombie-waves-reference/raw/workspace-sizes.txt
+
+      - name: Extract IL2CPP and gameplay-semantic strings
+        run: |
+          set -euo pipefail
+          : > analysis/zombie-waves-reference/raw/gameplay-semantic-strings.txt
+          : > analysis/zombie-waves-reference/raw/metadata-files.txt
+
+          find extracted -type f \( -name 'global-metadata.dat' -o -name 'libil2cpp.so' -o -name 'libunity.so' \) -print \
+            | sort | tee analysis/zombie-waves-reference/raw/metadata-files.txt
+
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            echo "===== $f =====" >> analysis/zombie-waves-reference/raw/gameplay-semantic-strings.txt
+            strings -n 5 "$f" 2>/dev/null \
+              | grep -Ei 'player|hero|surviv|zombie|enemy|monster|boss|weapon|gun|rifle|shot|bullet|projectile|missile|skill|ability|upgrade|perk|talent|wave|spawn|horde|drop|loot|exp|xp|pickup|magnet|joystick|hud|canvas|panel|button|home|shop|equipment|gear|mission|challenge|stage|level|reward|victory|revive|damage|critical|health|camera|vfx|effect|particle|rarity|companion|robot|vehicle|camp|season|gene|armor' \
+              | sort -u | head -n 12000 >> analysis/zombie-waves-reference/raw/gameplay-semantic-strings.txt || true
+          done < analysis/zombie-waves-reference/raw/metadata-files.txt
+
+      - name: Build Unity visual and gameplay metadata report
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from collections import Counter, defaultdict
+          import json, re
+          import UnityPy
+
+          ROOT=Path('extracted')
+          OUT=Path('analysis/zombie-waves-reference')
+          RAW=OUT/'raw'
+          OUT.mkdir(parents=True, exist_ok=True)
+
+          candidate=[]
+          for p in ROOT.rglob('*'):
+              if not p.is_file():
+                  continue
+              n=p.name.lower()
+              if n.endswith('.bundle') or n.endswith('.unity3d') or n in ('globalgamemanagers','globalgamemanagers.assets') or re.match(r'(sharedassets\d+|resources)\.assets$', n):
+                  candidate.append(p)
+          candidate=sorted(candidate, key=lambda p: (p.stat().st_size, str(p)))
+
+          type_counts=Counter()
+          texture_dims=Counter()
+          sprite_dims=Counter()
+          names=defaultdict(list)
+          per_file=[]
+          errors=[]
+          semantic=defaultdict(list)
+
+          categories={
+              'combat': re.compile(r'player|hero|surviv|zombie|enemy|monster|boss|weapon|gun|rifle|bullet|projectile|missile|damage|critical|health|wave|spawn|horde', re.I),
+              'progression': re.compile(r'skill|ability|upgrade|perk|talent|rarity|level|exp|xp|gene|armor', re.I),
+              'rewards': re.compile(r'drop|loot|reward|chest|coin|gem|pickup|magnet', re.I),
+              'ui_meta': re.compile(r'hud|canvas|panel|button|home|shop|equipment|gear|mission|challenge|stage|victory|revive|camp|season', re.I),
+              'presentation': re.compile(r'camera|vfx|effect|particle|trail|flash|shake|material|shader|light|shadow', re.I),
+              'companions': re.compile(r'companion|robot|pet|vehicle|drone', re.I),
+          }
+
+          def clean(s):
+              if not isinstance(s,str): return ''
+              return ' '.join(s.split())[:180]
+
+          def add_name(t,n):
+              n=clean(n)
+              if not n: return
+              if n not in names[t] and len(names[t]) < 600:
+                  names[t].append(n)
+              for cat,rx in categories.items():
+                  if rx.search(n) and n not in semantic[cat] and len(semantic[cat]) < 500:
+                      semantic[cat].append(n)
+
+          def obj_name(data):
+              for attr in ('m_Name','name'):
+                  try:
+                      v=getattr(data,attr)
+                      if isinstance(v,str) and v.strip():
+                          return clean(v)
+                  except Exception:
+                      pass
+              return ''
+
+          interesting={'Texture2D','Sprite','AnimationClip','GameObject','Material','Shader','AudioClip','MonoScript','SpriteAtlas','Canvas','RectTransform','ParticleSystem','ParticleSystemRenderer','Animator','AnimatorController','Mesh','SkinnedMeshRenderer'}
+          for p in candidate:
+              size=p.stat().st_size
+              if size > 450*1024*1024:
+                  per_file.append({'file':str(p),'size':size,'skipped':'over-450MiB safety cap'})
+                  continue
+              local=Counter()
+              local_errors=[]
+              try:
+                  env=UnityPy.load(str(p))
+                  for obj in env.objects:
+                      t=obj.type.name
+                      type_counts[t]+=1
+                      local[t]+=1
+                      if t not in interesting:
+                          continue
+                      try:
+                          data=obj.read()
+                      except Exception as e:
+                          if len(local_errors)<8: local_errors.append(f'{t}:{type(e).__name__}')
+                          continue
+                      add_name(t,obj_name(data))
+                      try:
+                          if t=='Texture2D':
+                              w=int(getattr(data,'m_Width',0)); h=int(getattr(data,'m_Height',0))
+                              if w and h: texture_dims[(w,h)]+=1
+                          elif t=='Sprite':
+                              rect=getattr(data,'m_Rect',None)
+                              if rect:
+                                  w=int(getattr(rect,'width',0)); h=int(getattr(rect,'height',0))
+                                  if w and h: sprite_dims[(w,h)]+=1
+                      except Exception:
+                          pass
+              except Exception as e:
+                  local_errors.append(f'load:{type(e).__name__}:{str(e)[:120]}')
+              per_file.append({'file':str(p),'size':size,'types':dict(local),'errors':local_errors})
+              if local_errors:
+                  errors.extend([f'{p}: {e}' for e in local_errors[:4]])
+
+          catalog_strings=[]
+          for p in ROOT.rglob('catalog.json'):
+              try:
+                  doc=json.loads(p.read_text(encoding='utf-8'))
+              except Exception:
+                  continue
+              stack=[doc]
+              while stack:
+                  x=stack.pop()
+                  if isinstance(x,dict): stack.extend(x.values())
+                  elif isinstance(x,list): stack.extend(x)
+                  elif isinstance(x,str) and 2 <= len(x) <= 240:
+                      catalog_strings.append(x)
+          for s in catalog_strings:
+              add_name('Addressables',s)
+
+          sf=RAW/'gameplay-semantic-strings.txt'
+          if sf.exists():
+              for line in sf.read_text(errors='ignore').splitlines():
+                  line=clean(line)
+                  if line and not line.startswith('====='):
+                      for cat,rx in categories.items():
+                          if rx.search(line) and line not in semantic[cat] and len(semantic[cat])<800:
+                              semantic[cat].append(line)
+
+          high_res=sum(n for (w,h),n in texture_dims.items() if max(w,h)>=1024)
+          very_high=sum(n for (w,h),n in texture_dims.items() if max(w,h)>=2048)
+
+          summary={
+              'candidate_unity_files':len(candidate),
+              'parsed_type_counts':dict(type_counts),
+              'texture_dimensions':{f'{w}x{h}':n for (w,h),n in texture_dims.most_common(100)},
+              'sprite_dimensions':{f'{w}x{h}':n for (w,h),n in sprite_dims.most_common(100)},
+              'high_res_textures_1024_plus':high_res,
+              'very_high_res_textures_2048_plus':very_high,
+              'sample_names':{k:v for k,v in names.items()},
+              'semantic_buckets':dict(semantic),
+              'files':per_file,
+              'errors':errors[:200],
+          }
+          (OUT/'metadata-summary.json').write_text(json.dumps(summary,indent=2,ensure_ascii=False),encoding='utf-8')
+
+          version=(RAW/'version-name.txt').read_text().strip() if (RAW/'version-name.txt').exists() else 'unknown'
+          xapk_sha=(RAW/'XAPK-SHA256.txt').read_text().split()[0] if (RAW/'XAPK-SHA256.txt').exists() else 'unknown'
+          cert=(RAW/'actual-cert-sha1.txt').read_text().strip() if (RAW/'actual-cert-sha1.txt').exists() else 'unknown'
+          apk_count=len((RAW/'apk-files.txt').read_text().splitlines()) if (RAW/'apk-files.txt').exists() else 0
+
+          lines=[
+              '# Zombie Waves — visual/gameplay reverse-engineering metadata report','',
+              '> Scope: metadata, structure and product-design analysis only. No proprietary textures, meshes, audio, source code or binary payloads are committed.','',
+              '## Provenance and integrity','',
+              '- Package: **com.ddup.zombiewaves.zw**',
+              f'- Detected version: **{version}**',
+              f'- XAPK SHA-256: `{xapk_sha}`',
+              f'- Signing certificate SHA-1: `{cert}`',
+              f'- APK/split count inside XAPK: **{apk_count}**','',
+              '## Engine/content architecture','',
+              f'- Unity metadata files considered: **{len(candidate)}**',
+              f'- GameObjects observed: **{type_counts["GameObject"]:,}**',
+              f'- Canvas objects observed: **{type_counts["Canvas"]:,}**',
+              f'- Texture2D objects observed: **{type_counts["Texture2D"]:,}**',
+              f'- Sprite objects observed: **{type_counts["Sprite"]:,}**',
+              f'- Materials observed: **{type_counts["Material"]:,}**',
+              f'- Particle systems observed: **{type_counts["ParticleSystem"]:,}**',
+              f'- Animation clips observed: **{type_counts["AnimationClip"]:,}**',
+              f'- Textures >=1024 on either axis: **{high_res:,}**',
+              f'- Textures >=2048 on either axis: **{very_high:,}**','',
+              '## Texture resolution distribution','',
+              '| Dimensions | Count |','|---|---:|',
+          ]
+          for (w,h),n in texture_dims.most_common(35):
+              lines.append(f'| {w}×{h} | {n} |')
+          lines += ['', '## Sprite resolution distribution','', '| Dimensions | Count |','|---|---:|']
+          for (w,h),n in sprite_dims.most_common(35):
+              lines.append(f'| {w}×{h} | {n} |')
+
+          labels={
+              'combat':'Combat actors / weapons / waves',
+              'progression':'Skills / upgrades / progression',
+              'rewards':'Drops / reward readability',
+              'ui_meta':'HUD / meta screens / navigation',
+              'presentation':'VFX / camera / materials / feedback',
+              'companions':'Companions / robots / vehicles',
+          }
+          for cat in categories:
+              lines += ['',f'## {labels[cat]} — metadata evidence','']
+              vals=semantic.get(cat,[])
+              if not vals:
+                  lines.append('- No readable names surfaced in this bucket.')
+              else:
+                  for v in vals[:180]:
+                      lines.append(f'- `{v}`')
+
+          lines += ['', '## Visual production implications for Deadline Zero','',
+              '- **Treat the player silhouette as the camera anchor.** A survivor-shooter benefits from stable framing and strong actor/background contrast.',
+              '- **Use texture resolution strategically.** High-resolution hero/weapon/boss art matters more than uniformly increasing every texture.',
+              '- **Build VFX as a layered system.** Particle/material/shader diversity should reinforce hits, danger, pickups, upgrades and reward moments without obscuring telegraphs.',
+              '- **Keep upgrades visually scannable.** Rarity, iconography, synergy state and the next meaningful choice should parse before the player reads full descriptions.',
+              '- **Use dense content architecture without visual clutter.** More enemy types, systems and reward layers only help if their silhouettes and UI priorities remain distinct.',
+              '- **Meta screens need focal objects.** Character, weapon, chest, equipment and reward screens should show the object prominently instead of presenting text-only tables.',
+              '- **Victory/reward moments should escalate.** Completion should visibly exceed ordinary menu presentation through motion, iconography and reward hierarchy.',
+              '- **Do not copy Zombie Waves assets, text, code, branding, exact layouts or character designs.** Reuse only abstract production lessons and measurable presentation patterns.',
+              '',
+              '## Parser notes','',
+              f'- Metadata parse issues recorded: **{len(errors)}**. See `metadata-summary.json` for file-level evidence.',
+              '- IL2CPP/global-metadata semantic strings are identifiers/evidence only; they are not treated as recovered source code.',
+          ]
+          (OUT/'REPORT.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          PY
+
+      - name: Write source manifest
+        run: |
+          set -euo pipefail
+          VERSION="$(cat analysis/zombie-waves-reference/raw/version-name.txt)"
+          SHA="$(cut -d' ' -f1 analysis/zombie-waves-reference/raw/XAPK-SHA256.txt)"
+          CERT="$(cat analysis/zombie-waves-reference/raw/actual-cert-sha1.txt)"
+          cat > analysis/zombie-waves-reference/SOURCE.md <<EOF
+          # Zombie Waves reference source
+
+          - Package: com.ddup.zombiewaves.zw
+          - Version detected: $VERSION
+          - Source used for ephemeral analysis: APKPure latest XAPK endpoint
+          - XAPK SHA-256: $SHA
+          - Signing certificate SHA-1: $CERT
+          - Expected certificate used as authenticity gate: 8fecea485b6721c19b7b2d54724f8ccf022eda20
+
+          The proprietary XAPK/APK is intentionally not stored in this repository. GitHub Actions downloads it ephemerally, validates package/signing identity, extracts metadata, and commits only non-binary analysis reports and inventories.
+          EOF
+
+      - name: Commit reference reports
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add analysis/zombie-waves-reference/
+          git diff --cached --quiet && exit 0
+          git commit -m 'analysis: reverse engineer Zombie Waves visual and gameplay metadata'
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
+      - name: Upload analysis evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombie-waves-reference-analysis-${{ github.sha }}
+          path: |
+            analysis/zombie-waves-reference/REPORT.md
+            analysis/zombie-waves-reference/SOURCE.md
+            analysis/zombie-waves-reference/metadata-summary.json
+            analysis/zombie-waves-reference/raw/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6

@@ -1,0 +1,13 @@
+config.arm64_v8a.apk  lib/arm64-v8a/libBugly_Native.so
+config.arm64_v8a.apk  lib/arm64-v8a/libFairGuard.so
+config.arm64_v8a.apk  lib/arm64-v8a/libapminsighta.so
+config.arm64_v8a.apk  lib/arm64-v8a/libapminsightb.so
+config.arm64_v8a.apk  lib/arm64-v8a/libapplovin-native-crash-reporter.so
+config.arm64_v8a.apk  lib/arm64-v8a/libbuffer_pgl.so
+config.arm64_v8a.apk  lib/arm64-v8a/libfile_lock_pgl.so
+config.arm64_v8a.apk  lib/arm64-v8a/libil2cpp.so
+config.arm64_v8a.apk  lib/arm64-v8a/libmain.so
+config.arm64_v8a.apk  lib/arm64-v8a/libnms.so
+config.arm64_v8a.apk  lib/arm64-v8a/libpglarmor.so
+config.arm64_v8a.apk  lib/arm64-v8a/libtt_ugen_layout.so
+config.arm64_v8a.apk  lib/arm64-v8a/libunity.so

@@ -1,0 +1,1 @@
+extracted/base_assets.apk/assets/bin/Data/Managed/Metadata/global-metadata.dat
