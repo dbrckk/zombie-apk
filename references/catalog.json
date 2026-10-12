@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "references": [
+    {
+      "slug": "idle-bank-tycoon",
+      "name": "Idle Bank Tycoon",
+      "publisher": "Lucky Skeleton Studios",
+      "package": "com.luckyskeletonstudios.idlebanktycoon",
+      "version": "1.96.0",
+      "source_type": "legacy_public_release",
+      "release_tag": "idle-bank.1.0.0",
+      "sha256": "cc34544d6d9927cedb994ea122af22a50a78548bac17b756a2c127ab0bb08f12",
+      "analysis_path": "analysis/idle-bank/REPORT.md",
+      "source_authenticity": "not_independently_confirmed",
+      "redistribution_rights": "not_verified",
+      "rea_status": "not_run"
+    },
+    {
+      "slug": "zombie-waves",
+      "name": "Zombie Waves",
+      "publisher": "Unknown: verify against publisher listing",
+      "package": "com.ddup.zombiewaves.zw",
+      "version": "4.7.3 (separate XAPK report)",
+      "source_type": "legacy_public_release",
+      "release_tag": "zombie-apk.1.0.0",
+      "sha256": null,
+      "analysis_path": "analysis/zombie-waves-reference/REPORT.md",
+      "source_authenticity": "not_independently_confirmed",
+      "redistribution_rights": "not_verified",
+      "rea_status": "not_run",
+      "notes": "Reported XAPK SHA is NOT proof of the release APK's SHA-256; the reference workflow used APKPure, not a direct publisher URL."
+    }
+  ]
+}

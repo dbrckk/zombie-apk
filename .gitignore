@@ -1,0 +1,10 @@
+# Android reference binaries and raw reverse-engineering evidence are private.
+reference-apks/
+private-evidence/
+*.apk
+*.xapk
+*.apks
+*.aab
+*.obb
+# Temporary local intake downloads
+reference.apk
