@@ -1,0 +1,80 @@
+name: REA reference intake functional smoke
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/reference_intake.py'
+      - 'scripts/fetch_official_apk.py'
+      - 'references/catalog.json'
+      - '.gitignore'
+      - 'README.md'
+      - '.github/workflows/reference-intake-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-intake-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile intake and validate catalog schema
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/reference_intake.py scripts/fetch_official_apk.py
+          python3 -m json.tool references/catalog.json > /dev/null
+          git check-ignore -q reference-apks/forbidden.apk
+          git check-ignore -q private-evidence/forbidden.json
+      - name: Offline HTTPS/redirect guard smoke (no network)
+        run: |
+          set -euo pipefail
+          SHA="$(printf '0%.0s' {1..64})"
+          python3 scripts/fetch_official_apk.py --url https://github.com/org/repo/releases/download/v1/app.apk --sha256 "$SHA" --slug smoke-original --dry-run
+          if python3 scripts/fetch_official_apk.py --url http://github.com/app.apk --sha256 "$SHA" --slug smoke-original --dry-run; then
+            echo "Accepted insecure HTTP" >&2; exit 1
+          fi
+          if python3 scripts/fetch_official_apk.py --url https://127.0.0.1/app.apk --sha256 "$SHA" --slug smoke-original --dry-run; then
+            echo "Accepted private network URL" >&2; exit 1
+          fi
+      - name: Real local APK ingest without any third-party binary
+        run: |
+          set -euo pipefail
+          TMPROOT="$(mktemp -d)"
+          export TMPROOT
+          python3 - <<'PY'
+          import os, zipfile, pathlib
+          root = pathlib.Path(os.environ["TMPROOT"])
+          with zipfile.ZipFile(root / "original-fixture.apk", "w") as out:
+              out.writestr("AndroidManifest.xml", "original CI fixture")
+              out.writestr("classes.dex", "original CI fixture")
+          PY
+          SHA="$(sha256sum "$TMPROOT/original-fixture.apk" | cut -d' ' -f1)"
+          python3 scripts/reference_intake.py \
+            --apk "$TMPROOT/original-fixture.apk" --slug original-smoke \
+            --name 'Original fixture' --publisher 'Owned by CI' \
+            --package org.example.smoke --version 1 \
+            --listing-url https://example.org/original-fixture \
+            --source-type publisher_release --expected-sha256 "$SHA" \
+            --repo-root "$TMPROOT" --store-local
+          python3 - <<'PY'
+          import os,json,pathlib
+          root=pathlib.Path(os.environ["TMPROOT"])
+          cat=json.loads((root/"references/catalog.json").read_text())
+          item=cat["references"][0]
+          assert item["slug"]=="original-smoke" and item["rea_status"]=="not_run"
+          assert item["source_authenticity"]=="operator_claim_unverified"
+          assert (root/item["private_apk_path"]).is_file()
+          PY
+          if python3 scripts/reference_intake.py \
+            --apk "$TMPROOT/original-fixture.apk" --slug original-smoke \
+            --name 'Original fixture' --publisher 'Owned by CI' \
+            --package org.example.smoke --version 1 \
+            --listing-url https://example.org/original-fixture \
+            --source-type publisher_release --expected-sha256 "$(printf '0%.0s' {1..64})" \
+            --repo-root "$TMPROOT" --store-local; then
+            echo "Incorrect SHA-256 was accepted" >&2
+            exit 1
+          fi
+          test "$(find "$TMPROOT/reference-apks" -name '*.apk' | wc -l)" -eq 1
