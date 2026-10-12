@@ -15,7 +15,17 @@ Ce dépôt est **public**. La possibilité d'analyser légalement un binaire ne 
 
 1. Chercher 3 à 5 alternatives et relever les **pages officielles éditeur / store** (fonctionnalités, UX, version, différenciation). Une page Google Play n'est **pas** un lien direct vers un APK.
 2. Si l'éditeur fournit un APK public et utilisable légalement : le télécharger depuis l'éditeur, noter l'URL réelle du téléchargement, un SHA-256 publié indépendamment ou un certificat de signature connu. Sinon, renseigner le blocage dans la fiche [modèle](https://github.com/dbrckk/repo-standards/blob/feature/app-reference-rea-20261012/templates/app-reference-intake.md) et utiliser la documentation, les captures autorisées, une alternative libre ou un export de son propre appareil si autorisé.
-3. Contrôler le fichier local et l'inscrire au catalogue :
+3. **Téléchargement privé facultatif depuis une URL de l'éditeur réellement vérifiée :** un script accepte uniquement HTTPS avec hôtes de redirection explicitement approuvés et un SHA-256 attendu fourni de manière indépendante. Il refuse les adresses internes, le changement de protocole et un fichier de contenu différent ; il écrit exclusivement dans `reference-apks/` (exclu par Git). La vérification SHA ne confirme pas à elle seule l'identité de l'éditeur.
+
+```sh
+python3 scripts/fetch_official_apk.py \
+  --url 'https://publisher.example/official.apk' \
+  --sha256 '<sha256_publie_par_une_source_fiable>' \
+  --slug application-exemple --dry-run
+# Retirer --dry-run uniquement lorsque URL, droits, hash et éventuel CDN sont confirmés.
+```
+
+4. Contrôler le fichier local téléchargé et l'inscrire au catalogue :
 
 ```sh
 # Exemple uniquement : source APK fournie réellement par l'éditeur
@@ -33,7 +43,7 @@ python3 scripts/reference_intake.py \
 
 Le script vérifie la structure APK, les empreintes annoncées, le package via `aapt` si présent et la signature avec `apksigner` si son empreinte attendue est fournie. **Il ne certifie pas seul qu'un domaine appartient à l'éditeur** et marque toujours cette attribution comme déclarative. Les valeurs d'exemple ne constituent pas des preuves réelles.
 
-4. Pour l'analyse automatisée **si REA, JDK 17+ et JADX headless compatible sont installés** :
+5. Pour l'analyse automatisée **si REA, JDK 17+ et JADX headless compatible sont installés** :
 
 ```sh
 rea doctor --json
@@ -46,7 +56,7 @@ python3 scripts/reference_intake.py \
 
 Les sorties REA restent dans `private-evidence/` ; seules des **synthèses originales**, avec des citations techniques et les limites, vont dans `analysis/<slug>/REPORT.md`.
 
-5. Documenter pour le projet cible : **fonction observée → preuve → principe général → conception propre → amélioration → validation fonctionnelle**. Ne pas copier code désassemblé, assets, noms commerciaux, clés, API privées ni mécanismes de sécurité.
+6. Documenter pour le projet cible : **fonction observée → preuve → principe général → conception propre → amélioration → validation fonctionnelle**. Ne pas copier code désassemblé, assets, noms commerciaux, clés, API privées ni mécanismes de sécurité.
 
 ## Vérification rapide
 

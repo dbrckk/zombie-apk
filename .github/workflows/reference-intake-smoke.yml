@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/reference_intake.py'
+      - 'scripts/fetch_official_apk.py'
       - 'references/catalog.json'
       - '.gitignore'
       - 'README.md'
@@ -22,10 +23,21 @@ jobs:
       - name: Compile intake and validate catalog schema
         run: |
           set -euo pipefail
-          python3 -m py_compile scripts/reference_intake.py
+          python3 -m py_compile scripts/reference_intake.py scripts/fetch_official_apk.py
           python3 -m json.tool references/catalog.json > /dev/null
           git check-ignore -q reference-apks/forbidden.apk
           git check-ignore -q private-evidence/forbidden.json
+      - name: Offline HTTPS/redirect guard smoke (no network)
+        run: |
+          set -euo pipefail
+          SHA="$(printf '0%.0s' {1..64})"
+          python3 scripts/fetch_official_apk.py --url https://github.com/org/repo/releases/download/v1/app.apk --sha256 "$SHA" --slug smoke-original --dry-run
+          if python3 scripts/fetch_official_apk.py --url http://github.com/app.apk --sha256 "$SHA" --slug smoke-original --dry-run; then
+            echo "Accepted insecure HTTP" >&2; exit 1
+          fi
+          if python3 scripts/fetch_official_apk.py --url https://127.0.0.1/app.apk --sha256 "$SHA" --slug smoke-original --dry-run; then
+            echo "Accepted private network URL" >&2; exit 1
+          fi
       - name: Real local APK ingest without any third-party binary
         run: |
           set -euo pipefail
