@@ -4,10 +4,10 @@ Ce dépôt contient des **analyses de références** et des releases historiques
 
 ## Contenu et protection des binaires
 
-- \`references/catalog.json\` : fiches, empreintes SHA-256, versions, canaux et liens vers les rapports. Les entrées historiques sont distinguées des APK nouvellement vérifiés.
-- \`analysis/\` : rapports non propriétaires (fonctionnalités, permissions, architecture observée, preuves et limites).
-- \`reference-apks/\` et \`private-evidence/\` : **dossiers locaux ignorés par Git**. Conserver les APK et les sorties brutes de REA ici, ou dans un stockage privé autorisé.
-- Releases historiques \`zombie-apk.1.0.0\` et \`idle-bank.1.0.0\` : présence de fichiers APK constatée, mais **les droits de redistribution ne sont pas attestés par le catalogue**. Ne pas y ajouter d'APK propriétaires sans autorisation de diffusion.
+- `references/catalog.json` : fiches, empreintes SHA-256, versions, canaux et liens vers les rapports. Les entrées historiques sont distinguées des APK nouvellement vérifiés.
+- `analysis/` : rapports non propriétaires (fonctionnalités, permissions, architecture observée, preuves et limites).
+- `reference-apks/` et `private-evidence/` : **dossiers locaux ignorés par Git**. Conserver les APK et les sorties brutes de REA ici, ou dans un stockage privé autorisé.
+- Releases historiques `zombie-apk.1.0.0` et `idle-bank.1.0.0` : présence de fichiers APK constatée, mais **les droits de redistribution ne sont pas attestés par le catalogue**. Ne pas y ajouter d'APK propriétaires sans autorisation de diffusion.
 
 Ce dépôt est **public**. La possibilité d'analyser légalement un binaire ne donne pas automatiquement l'autorisation de le republier. Aucune collecte systématique depuis des miroirs non officiels ; ne pas contourner la distribution du Play Store ou une protection technique.
 
@@ -17,7 +17,7 @@ Ce dépôt est **public**. La possibilité d'analyser légalement un binaire ne 
 2. Si l'éditeur fournit un APK public et utilisable légalement : le télécharger depuis l'éditeur, noter l'URL réelle du téléchargement, un SHA-256 publié indépendamment ou un certificat de signature connu. Sinon, renseigner le blocage dans la fiche [modèle](https://github.com/dbrckk/repo-standards/blob/feature/app-reference-rea-20261012/templates/app-reference-intake.md) et utiliser la documentation, les captures autorisées, une alternative libre ou un export de son propre appareil si autorisé.
 3. Contrôler le fichier local et l'inscrire au catalogue :
 
-\`\`\`sh
+```sh
 # Exemple uniquement : source APK fournie réellement par l'éditeur
 curl --fail --location --proto '=https' --proto-redir '=https' \
   --max-redirs 3 --output reference.apk 'https://publisher.example/official.apk'
@@ -29,22 +29,22 @@ python3 scripts/reference_intake.py \
   --source-type publisher_direct --expected-sha256 '<sha256 fiable>' \
   --expected-cert-sha256 '<certificat_sha256_editeur>' \
   --store-local
-\`\`\`
+```
 
-Le script vérifie la structure APK, les empreintes annoncées, le package via \`aapt\` si présent et la signature avec \`apksigner\` si son empreinte attendue est fournie. **Il ne certifie pas seul qu'un domaine appartient à l'éditeur** et marque toujours cette attribution comme déclarative. Les valeurs d'exemple ne constituent pas des preuves réelles.
+Le script vérifie la structure APK, les empreintes annoncées, le package via `aapt` si présent et la signature avec `apksigner` si son empreinte attendue est fournie. **Il ne certifie pas seul qu'un domaine appartient à l'éditeur** et marque toujours cette attribution comme déclarative. Les valeurs d'exemple ne constituent pas des preuves réelles.
 
 4. Pour l'analyse automatisée **si REA, JDK 17+ et JADX headless compatible sont installés** :
 
-\`\`\`sh
+```sh
 rea doctor --json
 python3 scripts/reference_intake.py \
   --apk reference.apk --slug application-exemple --name 'Application Exemple' \
   --publisher 'Éditeur vérifié' --package 'org.example.application' \
   --version '1.0' --listing-url 'https://publisher.example/app' \
   --source-type publisher_direct --store-local --run-rea
-\`\`\`
+```
 
-Les sorties REA restent dans \`private-evidence/\` ; seules des **synthèses originales**, avec des citations techniques et les limites, vont dans \`analysis/<slug>/REPORT.md\`.
+Les sorties REA restent dans `private-evidence/` ; seules des **synthèses originales**, avec des citations techniques et les limites, vont dans `analysis/<slug>/REPORT.md`.
 
 5. Documenter pour le projet cible : **fonction observée → preuve → principe général → conception propre → amélioration → validation fonctionnelle**. Ne pas copier code désassemblé, assets, noms commerciaux, clés, API privées ni mécanismes de sécurité.
 

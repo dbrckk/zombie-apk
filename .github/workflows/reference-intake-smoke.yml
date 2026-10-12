@@ -6,6 +6,7 @@ on:
       - 'scripts/reference_intake.py'
       - 'references/catalog.json'
       - '.gitignore'
+      - 'README.md'
       - '.github/workflows/reference-intake-smoke.yml'
   workflow_dispatch:
 
